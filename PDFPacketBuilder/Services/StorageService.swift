@@ -20,9 +20,13 @@ class StorageService {
     
     // MARK: - Template Storage
     
-    func saveTemplate(_ template: PDFTemplate) {
-        if let encoded = try? JSONEncoder().encode(template) {
-            defaults.set(encoded, forKey: templateKey)
+    func saveTemplate(_ template: PDFTemplate?) {
+        if let template = template {
+            if let encoded = try? JSONEncoder().encode(template) {
+                defaults.set(encoded, forKey: templateKey)
+            }
+        } else {
+            defaults.removeObject(forKey: templateKey)
         }
     }
     
