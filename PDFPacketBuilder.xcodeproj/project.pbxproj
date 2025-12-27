@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		0754A4F3237D47B2A7DEEB3F /* ContactsPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AD658FA7C1D49A8BD281151 /* ContactsPickerView.swift */; };
-		NVXFY5MODF272XEZ01XHV9JN /* PDFPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6D7E8F9A0B1C2 /* PDFPreviewView.swift */; };
 		0B1A0B9D7B5D4B8FA1C6B8A1 /* CSVImportPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A8C0B9D3C9E4F4AB7A0C5D1 /* CSVImportPreviewView.swift */; };
 		0C2B1C9E8C6E4C9BB2D7C9B2 /* CSVImportSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B9D1C2E4D6F4A1BB8C2D3E4 /* CSVImportSnapshot.swift */; };
 		0E55F21B10214575B2399ADA /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F171B2F5745248996D3E2 /* ContentView.swift */; };
@@ -35,13 +34,11 @@
 		F1C5E32305C240AFBECB0BAA /* CSVService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 689695FBF50F4083933E6418 /* CSVService.swift */; };
 		F61326E76F954C2D95FFE65F /* GenerateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22534FB84A4D42A2B8598F83 /* GenerateView.swift */; };
 		FD275F786C0D48C4AB379DFF /* ManualRecipientView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ADCC08912BE44348A7BF7FB /* ManualRecipientView.swift */; };
+		NVXFY5MODF272XEZ01XHV9JN /* PDFPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6D7E8F9A0B1C2 /* PDFPreviewView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		00D87B8696134640B767EED4 /* PDFTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFTemplate.swift; sourceTree = "<group>"; };
-		D1E2F3A4B5C6D7E8F9A0B1C2 /* PDFPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPreviewView.swift; sourceTree = "<group>"; };
-		7A8C0B9D3C9E4F4AB7A0C5D1 /* CSVImportPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportPreviewView.swift; sourceTree = "<group>"; };
-		8B9D1C2E4D6F4A1BB8C2D3E4 /* CSVImportSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportSnapshot.swift; sourceTree = "<group>"; };
 		078690AC6BA44032B6B7259B /* PDFService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFService.swift; sourceTree = "<group>"; };
 		109B03007A5A493ABA92DB74 /* SendLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLog.swift; sourceTree = "<group>"; };
 		1FEBA768BBE14DB58F04E545 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -57,8 +54,10 @@
 		689695FBF50F4083933E6418 /* CSVService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVService.swift; sourceTree = "<group>"; };
 		6B2A8D3BF1964936840B944A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		79AB57A1A6784079852AB2F6 /* RecipientsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientsView.swift; sourceTree = "<group>"; };
+		7A8C0B9D3C9E4F4AB7A0C5D1 /* CSVImportPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportPreviewView.swift; sourceTree = "<group>"; };
 		7ADCC08912BE44348A7BF7FB /* ManualRecipientView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualRecipientView.swift; sourceTree = "<group>"; };
 		8AD658FA7C1D49A8BD281151 /* ContactsPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsPickerView.swift; sourceTree = "<group>"; };
+		8B9D1C2E4D6F4A1BB8C2D3E4 /* CSVImportSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportSnapshot.swift; sourceTree = "<group>"; };
 		8C5363D938E745A0A7631D30 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		8E298F13E7504F47A4E0F2E4 /* LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsView.swift; sourceTree = "<group>"; };
 		A038FD6608C341CCBBACC185 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
@@ -66,6 +65,7 @@
 		B40D2473C6B641A794756B80 /* PDFPacketBuilderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPacketBuilderApp.swift; sourceTree = "<group>"; };
 		C51E955181164807B5629060 /* DocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPicker.swift; sourceTree = "<group>"; };
 		CE609F537AF143E0826AF948 /* ContactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsService.swift; sourceTree = "<group>"; };
+		D1E2F3A4B5C6D7E8F9A0B1C2 /* PDFPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPreviewView.swift; sourceTree = "<group>"; };
 		E72C760EE20645DA9FE96960 /* PDFPacketBuilder.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PDFPacketBuilder.entitlements; sourceTree = "<group>"; };
 		F9F9ADA768E1420F8C6582EC /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		FA0F171B2F5745248996D3E2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -211,7 +211,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1500;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					C6F1E7228F56444E805C1365 = {
 						CreatedOnToolsVersion = 15.0;
@@ -294,10 +294,29 @@
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 9PHS626XUN;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -310,6 +329,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				VALIDATE_PRODUCT = YES;
@@ -324,7 +344,6 @@
 				CODE_SIGN_ENTITLEMENTS = PDFPacketBuilder/PDFPacketBuilder.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9PHS626XUN;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PDFPacketBuilder/Resources/Info.plist;
@@ -356,10 +375,29 @@
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 9PHS626XUN;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -379,6 +417,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -392,7 +431,6 @@
 				CODE_SIGN_ENTITLEMENTS = PDFPacketBuilder/PDFPacketBuilder.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9PHS626XUN;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PDFPacketBuilder/Resources/Info.plist;
