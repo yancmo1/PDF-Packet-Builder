@@ -8,12 +8,40 @@ import SwiftUI
 struct MapView: View {
     @EnvironmentObject var appState: AppState
     @State private var fieldMappings: [String: String] = [:]
+    @State private var showingCSVImport = false
     
     var body: some View {
         NavigationView {
             Group {
                 if let template = appState.pdfTemplate {
                     Form {
+                        Section(header: Text("CSV")) {
+                            if let csvImport = appState.csvImport {
+                                HStack {
+                                    Text("Selected")
+                                    Spacer()
+                                    Text(csvImport.reference.originalFileName)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+                                HStack {
+                                    Text("Columns")
+                                    Spacer()
+                                    Text("\(csvImport.headers.count)")
+                                        .foregroundColor(.secondary)
+                                }
+                                Button("Preview") {
+                                    showingCSVImport = true
+                                }
+                            } else {
+                                Text("No CSV selected")
+                                    .foregroundColor(.secondary)
+                                Button("Import CSV") {
+                                    showingCSVImport = true
+                                }
+                            }
+                        }
+
                         Section(header: Text("Map PDF fields to CSV columns")) {
                             if template.fields.isEmpty {
                                 Text("No fields found in PDF")
@@ -59,6 +87,10 @@ struct MapView: View {
                             }
                             .disabled(template.fields.isEmpty)
                         }
+                    }
+                    .sheet(isPresented: $showingCSVImport) {
+                        CSVImportPreviewView()
+                            .environmentObject(appState)
                     }
                     .onAppear {
                         fieldMappings = template.fieldMappings

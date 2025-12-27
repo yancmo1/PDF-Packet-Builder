@@ -21,15 +21,13 @@ class PDFService {
             // Extract annotations (form fields)
             let annotations = page.annotations
             for annotation in annotations {
-                if let widgetAnnotation = annotation as? PDFAnnotation {
-                    if let fieldName = widgetAnnotation.fieldName, !fieldName.isEmpty {
-                        let field = PDFField(
-                            name: fieldName,
-                            type: determineFieldType(annotation),
-                            defaultValue: widgetAnnotation.widgetStringValue
-                        )
-                        fields.append(field)
-                    }
+                if let fieldName = annotation.fieldName, !fieldName.isEmpty {
+                    let field = PDFField(
+                        name: fieldName,
+                        type: determineFieldType(annotation),
+                        defaultValue: annotation.widgetStringValue
+                    )
+                    fields.append(field)
                 }
             }
         }
@@ -66,8 +64,8 @@ class PDFService {
                    let value = recipient.value(forKey: mapping) {
                     
                     // Set the field value
-                    annotation.widgetStringValue = value
                     annotation.setValue(value, forAnnotationKey: .widgetValue)
+                    annotation.widgetStringValue = value
                 }
             }
         }
@@ -94,3 +92,4 @@ class PDFService {
         return pdfDocument.dataRepresentation()
     }
 }
+
