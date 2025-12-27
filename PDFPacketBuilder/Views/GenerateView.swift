@@ -1,13 +1,11 @@
 //
-//  SendView.swift
-//  PDFPacketSender
-//
-//  View for generating and sending personalized PDFs
+//  GenerateView.swift
+//  PDFPacketBuilder
 //
 
 import SwiftUI
 
-struct SendView: View {
+struct GenerateView: View {
     @EnvironmentObject var appState: AppState
     @State private var isGenerating = false
     @State private var generatedPDFs: [(recipient: Recipient, pdfData: Data)] = []
@@ -108,7 +106,7 @@ struct SendView: View {
                     }
                 }
             }
-            .navigationTitle("Send PDFs")
+            .navigationTitle("Generate PDFs")
             .overlay {
                 if isGenerating {
                     ProgressView("Generating PDFs...")
@@ -188,9 +186,9 @@ struct ShareItem: Identifiable {
     let url: URL
 }
 
-struct SendView_Previews: PreviewProvider {
+struct GenerateView_Previews: PreviewProvider {
     static var previews: some View {
-        SendView()
+        GenerateView()
             .environmentObject(AppState())
     }
 }

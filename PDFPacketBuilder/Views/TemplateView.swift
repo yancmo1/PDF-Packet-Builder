@@ -1,8 +1,6 @@
 //
 //  TemplateView.swift
-//  PDFPacketSender
-//
-//  View for importing and managing PDF template
+//  PDFPacketBuilder
 //
 
 import SwiftUI
@@ -11,7 +9,6 @@ import UniformTypeIdentifiers
 struct TemplateView: View {
     @EnvironmentObject var appState: AppState
     @State private var showingDocumentPicker = false
-    @State private var showingFieldMapping = false
     @State private var isProcessing = false
     
     private let pdfService = PDFService()
@@ -20,66 +17,72 @@ struct TemplateView: View {
         NavigationView {
             VStack {
                 if let template = appState.pdfTemplate {
-                    // Template is loaded
-                    VStack(spacing: 20) {
-                        Image(systemName: "doc.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(.blue)
-                        
-                        Text(template.name)
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        Text("Fields: \(template.fields.count)")
-                            .foregroundColor(.secondary)
-                        
-                        Text("Mappings: \(template.fieldMappings.count)")
-                            .foregroundColor(.secondary)
-                        
-                        Spacer().frame(height: 20)
-                        
-                        Button(action: {
-                            showingFieldMapping = true
-                        }) {
-                            Label("Edit Field Mappings", systemImage: "link")
-                                .frame(maxWidth: .infinity)
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            Image(systemName: "doc.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(.blue)
+                            
+                            Text(template.name)
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                            
+                            Text("\(template.fields.count) fields")
+                                .foregroundColor(.secondary)
+                            
+                            Divider()
+                                .padding(.vertical)
+                            
+                            if !template.fields.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Fields in PDF:")
+                                        .font(.headline)
+                                    
+                                    ForEach(template.fields) { field in
+                                        HStack {
+                                            Image(systemName: "textformat")
+                                                .foregroundColor(.blue)
+                                            Text(field.name)
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 4)
+                                    }
+                                }
                                 .padding()
-                                .background(Color.blue)
-                                .foregroundColor(.white)
+                                .background(Color(.systemGray6))
                                 .cornerRadius(10)
+                            }
+                            
+                            Button(action: {
+                                showingDocumentPicker = true
+                            }) {
+                                Label("Replace Template", systemImage: "arrow.clockwise")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.orange)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                            }
                         }
-                        
-                        Button(action: {
-                            showingDocumentPicker = true
-                        }) {
-                            Label("Replace Template", systemImage: "arrow.clockwise")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.orange)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
+                        .padding()
                     }
-                    .padding()
-                    
                 } else {
-                    // No template loaded
                     VStack(spacing: 20) {
                         Image(systemName: "doc.badge.plus")
                             .font(.system(size: 80))
                             .foregroundColor(.gray)
                         
-                        Text("No Template Loaded")
+                        Text("No Template")
                             .font(.title2)
                             .fontWeight(.semibold)
                         
-                        Text("Import a PDF template to get started")
+                        Text("Import a fillable PDF to get started")
                             .foregroundColor(.secondary)
                         
                         Button(action: {
                             showingDocumentPicker = true
                         }) {
-                            Label("Import PDF Template", systemImage: "square.and.arrow.down")
+                            Label("Import PDF", systemImage: "square.and.arrow.down")
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(Color.blue)
@@ -92,18 +95,13 @@ struct TemplateView: View {
                 
                 Spacer()
             }
-            .navigationTitle("PDF Template")
+            .navigationTitle("Template")
             .sheet(isPresented: $showingDocumentPicker) {
                 DocumentPicker(onPDFSelected: handlePDFImport)
             }
-            .sheet(isPresented: $showingFieldMapping) {
-                if let template = appState.pdfTemplate {
-                    FieldMappingView(template: template)
-                }
-            }
             .overlay {
                 if isProcessing {
-                    ProgressView("Processing PDF...")
+                    ProgressView("Processing...")
                         .padding()
                         .background(Color(.systemBackground))
                         .cornerRadius(10)
