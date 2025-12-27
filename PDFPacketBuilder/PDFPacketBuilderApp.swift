@@ -1,14 +1,12 @@
 //
-//  PDFPacketSenderApp.swift
-//  PDFPacketSender
-//
-//  Main application entry point
+//  PDFPacketBuilderApp.swift
+//  PDFPacketBuilder
 //
 
 import SwiftUI
 
 @main
-struct PDFPacketSenderApp: App {
+struct PDFPacketBuilderApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var iapManager = IAPManager()
     
