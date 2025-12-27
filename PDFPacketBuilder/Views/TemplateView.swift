@@ -178,5 +178,6 @@ struct TemplateView_Previews: PreviewProvider {
     static var previews: some View {
         TemplateView()
             .environmentObject(AppState())
+            .environmentObject(IAPManager())
     }
 }
