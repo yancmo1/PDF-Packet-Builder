@@ -91,3 +91,16 @@ iOSInjectionProject/
 
 ## macOS
 .DS_Store
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# Xcode user-specific
+*.xcuserstate
+*.xcworkspace/xcshareddata/*.xccheckout
+
+# Generated files
+*.moved-aside
+*.swp
+*~.nib

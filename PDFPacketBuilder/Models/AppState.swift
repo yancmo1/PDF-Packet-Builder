@@ -1,8 +1,6 @@
 //
 //  AppState.swift
-//  PDFPacketSender
-//
-//  Central app state management
+//  PDFPacketBuilder
 //
 
 import Foundation
@@ -16,8 +14,13 @@ class AppState: ObservableObject {
     
     private let storageService = StorageService()
     
+    static let freeMaxTemplates = 1
+    static let freeMaxRecipients = 10
+    static let freeLogRetentionDays = 7
+    
     init() {
         loadState()
+        cleanOldLogs()
     }
     
     func loadState() {
@@ -25,6 +28,14 @@ class AppState: ObservableObject {
         self.recipients = storageService.loadRecipients()
         self.sendLogs = storageService.loadLogs()
         self.isPro = storageService.loadProStatus()
+    }
+    
+    func canAddTemplate() -> Bool {
+        return isPro || pdfTemplate == nil
+    }
+    
+    func canGenerateWithRecipientCount(_ count: Int) -> Bool {
+        return isPro || count <= Self.freeMaxRecipients
     }
     
     func saveTemplate(_ template: PDFTemplate) {
@@ -45,6 +56,14 @@ class AppState: ObservableObject {
     func updateProStatus(_ isPro: Bool) {
         self.isPro = isPro
         storageService.saveProStatus(isPro)
+    }
+    
+    func cleanOldLogs() {
+        if !isPro {
+            let cutoffDate = Calendar.current.date(byAdding: .day, value: -Self.freeLogRetentionDays, to: Date()) ?? Date()
+            sendLogs = sendLogs.filter { $0.timestamp > cutoffDate }
+            storageService.saveLogs(sendLogs)
+        }
     }
     
     func exportLogsAsCSV() -> String {

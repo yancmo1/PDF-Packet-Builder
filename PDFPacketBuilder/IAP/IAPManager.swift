@@ -1,8 +1,6 @@
 //
 //  IAPManager.swift
-//  PDFPacketSender
-//
-//  In-App Purchase management for one-time purchase and Pro features
+//  PDFPacketBuilder
 //
 
 import Foundation
@@ -13,9 +11,7 @@ class IAPManager: NSObject, ObservableObject {
     @Published var purchasedProductIDs = Set<String>()
     @Published var isLoading = false
     
-    // Product IDs - UPDATE THESE WITH YOUR ACTUAL APP STORE PRODUCT IDS
-    static let fullAppProductID = "com.yourcompany.pdfpacketsender.fullapp"
-    static let proFeaturesProductID = "com.yourcompany.pdfpacketsender.pro"
+    static let proProductID = "com.yancmo.pdfpacketbuilder.pro"
     
     private var updateListenerTask: Task<Void, Error>?
     
@@ -28,7 +24,6 @@ class IAPManager: NSObject, ObservableObject {
         updateListenerTask?.cancel()
     }
     
-    // Listen for transaction updates
     func listenForTransactions() -> Task<Void, Error> {
         return Task.detached {
             for await result in Transaction.updates {
@@ -43,17 +38,13 @@ class IAPManager: NSObject, ObservableObject {
         }
     }
     
-    // Load products from App Store
     @MainActor
     func loadProducts() {
         isLoading = true
         Task {
             do {
-                let products = try await Product.products(for: [
-                    Self.fullAppProductID,
-                    Self.proFeaturesProductID
-                ])
-                self.products = products.sorted { $0.price < $1.price }
+                let products = try await Product.products(for: [Self.proProductID])
+                self.products = products
                 await updatePurchasedProducts()
             } catch {
                 print("Failed to load products: \(error)")
@@ -62,7 +53,6 @@ class IAPManager: NSObject, ObservableObject {
         }
     }
     
-    // Purchase a product
     func purchase(_ product: Product) async throws -> Transaction? {
         let result = try await product.purchase()
         
@@ -81,7 +71,6 @@ class IAPManager: NSObject, ObservableObject {
         }
     }
     
-    // Restore purchases
     @MainActor
     func restorePurchases() async {
         isLoading = true
@@ -94,7 +83,6 @@ class IAPManager: NSObject, ObservableObject {
         isLoading = false
     }
     
-    // Update purchased products
     @MainActor
     private func updatePurchasedProducts() async {
         var purchasedIDs = Set<String>()
@@ -111,17 +99,10 @@ class IAPManager: NSObject, ObservableObject {
         self.purchasedProductIDs = purchasedIDs
     }
     
-    // Check if user has purchased the full app
-    var hasFullApp: Bool {
-        return purchasedProductIDs.contains(Self.fullAppProductID)
+    var isPro: Bool {
+        return purchasedProductIDs.contains(Self.proProductID)
     }
     
-    // Check if user has Pro features
-    var hasPro: Bool {
-        return purchasedProductIDs.contains(Self.proFeaturesProductID)
-    }
-    
-    // Verify transaction
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         switch result {
         case .unverified:

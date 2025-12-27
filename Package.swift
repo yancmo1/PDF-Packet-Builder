@@ -4,18 +4,18 @@
 import PackageDescription
 
 let package = Package(
-    name: "PDFPacketSender",
+    name: "PDFPacketBuilder",
     platforms: [
         .iOS(.v16)
     ],
     products: [
         .library(
-            name: "PDFPacketSender",
-            targets: ["PDFPacketSender"]),
+            name: "PDFPacketBuilder",
+            targets: ["PDFPacketBuilder"]),
     ],
     targets: [
         .target(
-            name: "PDFPacketSender",
-            path: "PDFPacketSender")
+            name: "PDFPacketBuilder",
+            path: "PDFPacketBuilder")
     ]
 )

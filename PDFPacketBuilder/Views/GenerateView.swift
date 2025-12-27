@@ -1,18 +1,18 @@
 //
-//  SendView.swift
-//  PDFPacketSender
-//
-//  View for generating and sending personalized PDFs
+//  GenerateView.swift
+//  PDFPacketBuilder
 //
 
 import SwiftUI
 
-struct SendView: View {
+struct GenerateView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var iapManager: IAPManager
     @State private var isGenerating = false
     @State private var generatedPDFs: [(recipient: Recipient, pdfData: Data)] = []
     @State private var showingShareSheet = false
     @State private var currentShareItem: ShareItem?
+    @State private var showingPaywall = false
     
     private let pdfService = PDFService()
     
@@ -32,10 +32,8 @@ struct SendView: View {
                         message: "Add recipients to send PDFs"
                     )
                 } else {
-                    // Ready to send
                     ScrollView {
                         VStack(spacing: 20) {
-                            // Summary
                             VStack(spacing: 10) {
                                 HStack {
                                     VStack(alignment: .leading) {
@@ -53,7 +51,7 @@ struct SendView: View {
                                         Text("Recipients")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
-                                        Text("\(appState.recipients.count) people")
+                                        Text("\(appState.recipients.count)")
                                             .fontWeight(.semibold)
                                     }
                                     Spacer()
@@ -63,16 +61,32 @@ struct SendView: View {
                             .background(Color(.systemGray6))
                             .cornerRadius(10)
                             
-                            // Generate button
+                            if !appState.canGenerateWithRecipientCount(appState.recipients.count) {
+                                HStack {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.orange)
+                                    Text("Free plan: 10 recipients max")
+                                        .font(.caption)
+                                    Spacer()
+                                    Button("Upgrade") {
+                                        showingPaywall = true
+                                    }
+                                    .font(.caption)
+                                }
+                                .padding()
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(8)
+                            }
+                            
                             Button(action: generatePDFs) {
                                 Label("Generate PDFs", systemImage: "doc.on.doc")
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(Color.blue)
+                                    .background(appState.canGenerateWithRecipientCount(appState.recipients.count) ? Color.blue : Color.gray)
                                     .foregroundColor(.white)
                                     .cornerRadius(10)
                             }
-                            .disabled(isGenerating)
+                            .disabled(isGenerating || !appState.canGenerateWithRecipientCount(appState.recipients.count))
                             
                             // Generated PDFs list
                             if !generatedPDFs.isEmpty {
@@ -108,7 +122,7 @@ struct SendView: View {
                     }
                 }
             }
-            .navigationTitle("Send PDFs")
+            .navigationTitle("Generate PDFs")
             .overlay {
                 if isGenerating {
                     ProgressView("Generating PDFs...")
@@ -120,6 +134,9 @@ struct SendView: View {
             }
             .sheet(item: $currentShareItem) { item in
                 ShareSheet(items: [item.url])
+            }
+            .sheet(isPresented: $showingPaywall) {
+                PurchaseView()
             }
         }
     }
@@ -188,9 +205,9 @@ struct ShareItem: Identifiable {
     let url: URL
 }
 
-struct SendView_Previews: PreviewProvider {
+struct GenerateView_Previews: PreviewProvider {
     static var previews: some View {
-        SendView()
+        GenerateView()
             .environmentObject(AppState())
     }
 }

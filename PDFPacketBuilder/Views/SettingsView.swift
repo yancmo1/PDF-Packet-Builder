@@ -1,8 +1,6 @@
 //
 //  SettingsView.swift
-//  PDFPacketSender
-//
-//  Settings view with IAP and app info
+//  PDFPacketBuilder
 //
 
 import SwiftUI
@@ -16,52 +14,54 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             List {
-                // App Status Section
-                Section(header: Text("App Status")) {
+                Section(header: Text("Plan")) {
                     HStack {
-                        Text("Version")
+                        Text("Status")
                         Spacer()
-                        Text("1.0.0")
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("Full App")
-                        Spacer()
-                        if iapManager.hasFullApp {
-                            Image(systemName: "checkmark.circle.fill")
+                        if iapManager.isPro {
+                            Text("Pro")
                                 .foregroundColor(.green)
+                                .fontWeight(.semibold)
                         } else {
-                            Text("Not Purchased")
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    HStack {
-                        Text("Pro Features")
-                        Spacer()
-                        if iapManager.hasPro {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                        } else {
-                            Text("Not Purchased")
+                            Text("Free")
                                 .foregroundColor(.secondary)
                         }
                     }
                 }
                 
-                // Purchase Section
-                if !iapManager.hasFullApp || !iapManager.hasPro {
-                    Section(header: Text("In-App Purchases")) {
+                if !iapManager.isPro {
+                    Section(header: Text("Free Plan Limits")) {
+                        HStack {
+                            Text("Templates")
+                            Spacer()
+                            Text("1 max")
+                                .foregroundColor(.secondary)
+                        }
+                        HStack {
+                            Text("Recipients per batch")
+                            Spacer()
+                            Text("10 max")
+                                .foregroundColor(.secondary)
+                        }
+                        HStack {
+                            Text("Log retention")
+                            Spacer()
+                            Text("7 days")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Section {
                         Button(action: {
                             showingPurchaseSheet = true
                         }) {
-                            Label("View Available Purchases", systemImage: "cart")
+                            Label("Unlock Pro", systemImage: "star.fill")
+                                .foregroundColor(.blue)
                         }
                         
                         Button(action: restorePurchases) {
                             HStack {
-                                Label("Restore Purchases", systemImage: "arrow.clockwise")
+                                Label("Restore", systemImage: "arrow.clockwise")
                                 if isRestoring {
                                     Spacer()
                                     ProgressView()
@@ -72,7 +72,6 @@ struct SettingsView: View {
                     }
                 }
                 
-                // Data Section
                 Section(header: Text("Data")) {
                     HStack {
                         Text("Templates")
@@ -89,35 +88,18 @@ struct SettingsView: View {
                     }
                     
                     HStack {
-                        Text("Send Logs")
+                        Text("Logs")
                         Spacer()
                         Text("\(appState.sendLogs.count)")
                             .foregroundColor(.secondary)
                     }
                 }
                 
-                // About Section
                 Section(header: Text("About")) {
-                    Link(destination: URL(string: "https://github.com/yancmo1/PDF-Packet-Sender")!) {
-                        HStack {
-                            Text("GitHub Repository")
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
                     HStack {
-                        Text("Privacy Policy")
+                        Text("Version")
                         Spacer()
-                        Image(systemName: "arrow.up.right.square")
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("Terms of Service")
-                        Spacer()
-                        Image(systemName: "arrow.up.right.square")
+                        Text("1.0.0")
                             .foregroundColor(.secondary)
                     }
                 }

@@ -1,8 +1,6 @@
 //
 //  ContentView.swift
-//  PDFPacketSender
-//
-//  Main view with navigation
+//  PDFPacketBuilder
 //
 
 import SwiftUI
@@ -26,23 +24,29 @@ struct ContentView: View {
                 }
                 .tag(1)
             
-            SendView()
+            MapView()
                 .tabItem {
-                    Label("Send", systemImage: "paperplane.fill")
+                    Label("Map", systemImage: "link")
                 }
                 .tag(2)
+            
+            GenerateView()
+                .tabItem {
+                    Label("Generate", systemImage: "doc.on.doc")
+                }
+                .tag(3)
             
             LogsView()
                 .tabItem {
                     Label("Logs", systemImage: "list.bullet.rectangle")
                 }
-                .tag(3)
+                .tag(4)
             
             SettingsView()
                 .tabItem {
                     Label("Settings", systemImage: "gear")
                 }
-                .tag(4)
+                .tag(5)
         }
     }
 }
