@@ -21,9 +21,11 @@ struct TemplateView: View {
                 if let template = appState.pdfTemplate {
                     ScrollView {
                         VStack(spacing: 20) {
-                            Image(systemName: "doc.fill")
-                                .font(.system(size: 60))
-                                .foregroundColor(.blue)
+                            // PDF Preview
+                            PDFPreviewView(pdfData: template.pdfData)
+                                .frame(height: 300)
+                                .cornerRadius(10)
+                                .shadow(radius: 5)
                             
                             Text(template.name)
                                 .font(.title2)
@@ -49,6 +51,20 @@ struct TemplateView: View {
                                         }
                                         .padding(.vertical, 4)
                                     }
+                                }
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .cornerRadius(10)
+                            } else {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "info.circle")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(.orange)
+                                    
+                                    Text("This version supports fillable PDFs (AcroForm).")
+                                        .font(.body)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
                                 }
                                 .padding()
                                 .background(Color(.systemGray6))
@@ -133,6 +149,13 @@ struct TemplateView: View {
                 let fields = pdfService.extractFields(from: data)
                 let fileName = url.deletingPathExtension().lastPathComponent
                 
+                // Save a copy to Documents directory
+                let storageService = StorageService()
+                let savedFileName = "\(fileName).pdf"
+                if storageService.savePDFToDocuments(data: data, filename: savedFileName) == nil {
+                    print("Warning: Failed to save PDF to Documents directory")
+                }
+                
                 let template = PDFTemplate(
                     name: fileName,
                     pdfData: data,
@@ -157,5 +180,6 @@ struct TemplateView_Previews: PreviewProvider {
     static var previews: some View {
         TemplateView()
             .environmentObject(AppState())
+            .environmentObject(IAPManager())
     }
 }

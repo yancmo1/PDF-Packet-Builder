@@ -250,6 +250,7 @@
 				BDDB00F92D49418F9C8E1B1E /* SendLog.swift in Sources */,
 				0E55F21B10214575B2399ADA /* ContentView.swift in Sources */,
 				46EE1C5ED3E34943AAE3C8D6 /* TemplateView.swift in Sources */,
+				NVXFY5MODF272XEZ01XHV9JN /* PDFPreviewView.swift in Sources */,
 				D46815B0EEB84DFEA63B836F /* RecipientsView.swift in Sources */,
 				E35AE2520CA747D8B7EAC3C3 /* MapView.swift in Sources */,
 				E258572A91AA438F9EB32E4B /* FieldMappingView.swift in Sources */,
