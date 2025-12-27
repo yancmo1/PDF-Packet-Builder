@@ -75,4 +75,34 @@ class AppState: ObservableObject {
         }
         return csv
     }
+    
+    func removeTemplate() {
+        self.pdfTemplate = nil
+        storageService.saveTemplate(nil)
+        
+        // Clear related data for free tier
+        if !isPro {
+            clearMappingAndHistory()
+        }
+    }
+    
+    func replaceTemplate(_ newTemplate: PDFTemplate) {
+        // For free tier, clear old data before replacing
+        if !isPro {
+            clearMappingAndHistory()
+        }
+        
+        self.pdfTemplate = newTemplate
+        storageService.saveTemplate(newTemplate)
+    }
+    
+    private func clearMappingAndHistory() {
+        // Clear recipients (CSV snapshot)
+        self.recipients = []
+        storageService.saveRecipients([])
+        
+        // Clear logs
+        self.sendLogs = []
+        storageService.saveLogs([])
+    }
 }

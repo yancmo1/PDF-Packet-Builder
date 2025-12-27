@@ -12,6 +12,9 @@ struct TemplateView: View {
     @State private var showingDocumentPicker = false
     @State private var isProcessing = false
     @State private var showingPaywall = false
+    @State private var showingReplaceConfirmation = false
+    @State private var showingRemoveConfirmation = false
+    @State private var pendingPDFUrl: URL?
     
     private let pdfService = PDFService()
     
@@ -85,6 +88,17 @@ struct TemplateView: View {
                                     .foregroundColor(.white)
                                     .cornerRadius(10)
                             }
+                            
+                            Button(action: {
+                                showingRemoveConfirmation = true
+                            }) {
+                                Label("Remove Template", systemImage: "trash")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.red.opacity(0.1))
+                                    .foregroundColor(.red)
+                                    .cornerRadius(10)
+                            }
                         }
                         .padding()
                     }
@@ -133,6 +147,26 @@ struct TemplateView: View {
                         .shadow(radius: 10)
                 }
             }
+            .alert("Replace template?", isPresented: $showingReplaceConfirmation) {
+                Button("Cancel", role: .cancel) {
+                    pendingPDFUrl = nil
+                }
+                Button("Replace", role: .destructive) {
+                    if let url = pendingPDFUrl {
+                        processPDFImport(url: url, isReplacement: true)
+                    }
+                }
+            } message: {
+                Text("Replacing will reset mapping and history for the free version.")
+            }
+            .alert("Remove template?", isPresented: $showingRemoveConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Remove", role: .destructive) {
+                    appState.removeTemplate()
+                }
+            } message: {
+                Text("This will remove the template and clear mapping and history.")
+            }
         }
     }
     
@@ -141,6 +175,16 @@ struct TemplateView: View {
             return
         }
         
+        // Check if this is a replacement (template exists and user is not pro)
+        if appState.pdfTemplate != nil && !iapManager.isPro {
+            pendingPDFUrl = url
+            showingReplaceConfirmation = true
+        } else {
+            processPDFImport(url: url, isReplacement: false)
+        }
+    }
+    
+    private func processPDFImport(url: URL, isReplacement: Bool) {
         isProcessing = true
         
         DispatchQueue.global(qos: .userInitiated).async {
@@ -163,13 +207,19 @@ struct TemplateView: View {
                 )
                 
                 DispatchQueue.main.async {
-                    appState.saveTemplate(template)
+                    if isReplacement {
+                        appState.replaceTemplate(template)
+                    } else {
+                        appState.saveTemplate(template)
+                    }
                     isProcessing = false
+                    pendingPDFUrl = nil
                 }
             } catch {
                 print("Error importing PDF: \(error)")
                 DispatchQueue.main.async {
                     isProcessing = false
+                    pendingPDFUrl = nil
                 }
             }
         }
