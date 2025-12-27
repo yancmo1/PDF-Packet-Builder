@@ -16,6 +16,7 @@ class StorageService {
     private let recipientsKey = "recipients"
     private let logsKey = "sendLogs"
     private let proStatusKey = "isPro"
+    private let csvImportKey = "csvImport"
     
     // MARK: - Template Storage
     
@@ -65,11 +66,56 @@ class StorageService {
     func loadProStatus() -> Bool {
         return defaults.bool(forKey: proStatusKey)
     }
+
+    // MARK: - CSV Import Storage
+
+    func saveCSVImport(_ csvImport: CSVImportSnapshot) {
+        if let encoded = try? JSONEncoder().encode(csvImport) {
+            defaults.set(encoded, forKey: csvImportKey)
+        }
+    }
+
+    func loadCSVImport() -> CSVImportSnapshot? {
+        guard let data = defaults.data(forKey: csvImportKey) else { return nil }
+        return try? JSONDecoder().decode(CSVImportSnapshot.self, from: data)
+    }
+
+    func clearCSVImport() {
+        defaults.removeObject(forKey: csvImportKey)
+    }
     
     // MARK: - Document Directory Access
     
     func getDocumentsDirectory() -> URL {
         fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    }
+
+    func importCSVToDocuments(from sourceURL: URL) throws -> CSVFileReference {
+        let importsDir = getDocumentsDirectory()
+            .appendingPathComponent("Imports", isDirectory: true)
+            .appendingPathComponent("CSV", isDirectory: true)
+
+        if !fileManager.fileExists(atPath: importsDir.path) {
+            try fileManager.createDirectory(at: importsDir, withIntermediateDirectories: true)
+        }
+
+        let originalName = sourceURL.lastPathComponent
+        let uniqueName = "\(UUID().uuidString)-\(originalName)"
+        let destinationURL = importsDir.appendingPathComponent(uniqueName)
+
+        if fileManager.fileExists(atPath: destinationURL.path) {
+            try fileManager.removeItem(at: destinationURL)
+        }
+
+        do {
+            try fileManager.copyItem(at: sourceURL, to: destinationURL)
+        } catch {
+            // Fallback for providers that don't support copyItem well.
+            let data = try Data(contentsOf: sourceURL)
+            try data.write(to: destinationURL, options: [.atomic])
+        }
+
+        return CSVFileReference(originalFileName: originalName, localPath: destinationURL.path, importedAt: Date())
     }
     
     func savePDFToDocuments(data: Data, filename: String) -> URL? {
