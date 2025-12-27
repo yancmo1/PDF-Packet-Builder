@@ -73,17 +73,20 @@ class AppState: ObservableObject {
     func cleanOldLogs() {
         if !isPro {
             let cutoffDate = Calendar.current.date(byAdding: .day, value: -Self.freeLogRetentionDays, to: Date()) ?? Date()
-            sendLogs = sendLogs.filter { $0.timestamp > cutoffDate }
+            sendLogs = sendLogs.filter { $0.sentDate > cutoffDate }
             storageService.saveLogs(sendLogs)
         }
     }
     
     func exportLogsAsCSV() -> String {
-        var csv = "Timestamp,Recipient,Status,PDF Name\n"
+        var csv = "Recipient Name,Template Name,Output Filename,Sent Date,Method\n"
         for log in sendLogs {
-            let timestamp = log.timestamp.ISO8601Format()
-            let recipient = log.recipientName.replacingOccurrences(of: ",", with: ";")
-            csv += "\(timestamp),\(recipient),\(log.status),\(log.pdfName)\n"
+            let recipientName = log.recipientName.replacingOccurrences(of: ",", with: ";")
+            let templateName = log.templateName.replacingOccurrences(of: ",", with: ";")
+            let outputFileName = log.outputFileName.replacingOccurrences(of: ",", with: ";")
+            let sentDate = log.formattedSentDate
+            let method = log.method.rawValue
+            csv += "\(recipientName),\(templateName),\(outputFileName),\(sentDate),\(method)\n"
         }
         return csv
     }
