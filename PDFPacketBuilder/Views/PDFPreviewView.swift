@@ -23,11 +23,12 @@ struct PDFPreviewView: UIViewRepresentable {
     }
     
     func updateUIView(_ pdfView: PDFView, context: Context) {
-        // Only update if document is nil or pdfData has changed
-        guard pdfView.document == nil else { return }
-        
-        if let document = PDFDocument(data: pdfData) {
-            pdfView.document = document
-        }
+    // Reload document only if the data size has changed (simple and reliable for v1)
+    if let currentDoc = pdfView.document, currentDoc.dataRepresentation()?.count == pdfData.count {
+        return
+    }
+
+    pdfView.document = PDFDocument(data: pdfData)
+}
     }
 }
