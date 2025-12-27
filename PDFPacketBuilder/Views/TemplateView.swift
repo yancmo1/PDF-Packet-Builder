@@ -75,11 +75,8 @@ struct TemplateView: View {
                             }
                             
                             Button(action: {
-                                if appState.canAddTemplate() {
-                                    showingDocumentPicker = true
-                                } else {
-                                    showingPaywall = true
-                                }
+                                // Free users can replace (with confirmation), Pro can add more
+                                showingDocumentPicker = true
                             }) {
                                 Label("Replace Template", systemImage: "arrow.clockwise")
                                     .frame(maxWidth: .infinity)
@@ -171,15 +168,15 @@ struct TemplateView: View {
     }
     
     private func handlePDFImport(url: URL) {
-        if !appState.canAddTemplate() {
-            return
-        }
-        
         // Check if this is a replacement (template exists and user is not pro)
         if appState.pdfTemplate != nil && !iapManager.isPro {
             pendingPDFUrl = url
             showingReplaceConfirmation = true
+        } else if appState.pdfTemplate != nil && iapManager.isPro {
+            // Pro users can add more templates, just process it
+            processPDFImport(url: url, isReplacement: false)
         } else {
+            // No template exists, just import it
             processPDFImport(url: url, isReplacement: false)
         }
     }
