@@ -11,6 +11,7 @@ class AppState: ObservableObject {
     @Published var recipients: [Recipient] = []
     @Published var sendLogs: [SendLog] = []
     @Published var isPro: Bool = false
+    @Published var csvImport: CSVImportSnapshot? = nil
     
     private let storageService = StorageService()
     
@@ -28,6 +29,7 @@ class AppState: ObservableObject {
         self.recipients = storageService.loadRecipients()
         self.sendLogs = storageService.loadLogs()
         self.isPro = storageService.loadProStatus()
+        self.csvImport = storageService.loadCSVImport()
     }
     
     func canAddTemplate() -> Bool {
@@ -46,6 +48,16 @@ class AppState: ObservableObject {
     func saveRecipients(_ recipients: [Recipient]) {
         self.recipients = recipients
         storageService.saveRecipients(recipients)
+    }
+
+    func saveCSVImport(_ csvImport: CSVImportSnapshot) {
+        self.csvImport = csvImport
+        storageService.saveCSVImport(csvImport)
+    }
+
+    func clearCSVImport() {
+        self.csvImport = nil
+        storageService.clearCSVImport()
     }
     
     func addSendLog(_ log: SendLog) {
