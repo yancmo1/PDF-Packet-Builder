@@ -8,8 +8,10 @@ import UniformTypeIdentifiers
 
 struct TemplateView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var iapManager: IAPManager
     @State private var showingDocumentPicker = false
     @State private var isProcessing = false
+    @State private var showingPaywall = false
     
     private let pdfService = PDFService()
     
@@ -54,7 +56,11 @@ struct TemplateView: View {
                             }
                             
                             Button(action: {
-                                showingDocumentPicker = true
+                                if appState.canAddTemplate() {
+                                    showingDocumentPicker = true
+                                } else {
+                                    showingPaywall = true
+                                }
                             }) {
                                 Label("Replace Template", systemImage: "arrow.clockwise")
                                     .frame(maxWidth: .infinity)
@@ -99,6 +105,9 @@ struct TemplateView: View {
             .sheet(isPresented: $showingDocumentPicker) {
                 DocumentPicker(onPDFSelected: handlePDFImport)
             }
+            .sheet(isPresented: $showingPaywall) {
+                PurchaseView()
+            }
             .overlay {
                 if isProcessing {
                     ProgressView("Processing...")
@@ -112,6 +121,10 @@ struct TemplateView: View {
     }
     
     private func handlePDFImport(url: URL) {
+        if !appState.canAddTemplate() {
+            return
+        }
+        
         isProcessing = true
         
         DispatchQueue.global(qos: .userInitiated).async {

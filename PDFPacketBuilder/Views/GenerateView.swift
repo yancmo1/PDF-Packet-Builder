@@ -7,10 +7,12 @@ import SwiftUI
 
 struct GenerateView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var iapManager: IAPManager
     @State private var isGenerating = false
     @State private var generatedPDFs: [(recipient: Recipient, pdfData: Data)] = []
     @State private var showingShareSheet = false
     @State private var currentShareItem: ShareItem?
+    @State private var showingPaywall = false
     
     private let pdfService = PDFService()
     
@@ -30,10 +32,8 @@ struct GenerateView: View {
                         message: "Add recipients to send PDFs"
                     )
                 } else {
-                    // Ready to send
                     ScrollView {
                         VStack(spacing: 20) {
-                            // Summary
                             VStack(spacing: 10) {
                                 HStack {
                                     VStack(alignment: .leading) {
@@ -51,7 +51,7 @@ struct GenerateView: View {
                                         Text("Recipients")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
-                                        Text("\(appState.recipients.count) people")
+                                        Text("\(appState.recipients.count)")
                                             .fontWeight(.semibold)
                                     }
                                     Spacer()
@@ -61,16 +61,32 @@ struct GenerateView: View {
                             .background(Color(.systemGray6))
                             .cornerRadius(10)
                             
-                            // Generate button
+                            if !appState.canGenerateWithRecipientCount(appState.recipients.count) {
+                                HStack {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.orange)
+                                    Text("Free plan: 10 recipients max")
+                                        .font(.caption)
+                                    Spacer()
+                                    Button("Upgrade") {
+                                        showingPaywall = true
+                                    }
+                                    .font(.caption)
+                                }
+                                .padding()
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(8)
+                            }
+                            
                             Button(action: generatePDFs) {
                                 Label("Generate PDFs", systemImage: "doc.on.doc")
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(Color.blue)
+                                    .background(appState.canGenerateWithRecipientCount(appState.recipients.count) ? Color.blue : Color.gray)
                                     .foregroundColor(.white)
                                     .cornerRadius(10)
                             }
-                            .disabled(isGenerating)
+                            .disabled(isGenerating || !appState.canGenerateWithRecipientCount(appState.recipients.count))
                             
                             // Generated PDFs list
                             if !generatedPDFs.isEmpty {
@@ -118,6 +134,9 @@ struct GenerateView: View {
             }
             .sheet(item: $currentShareItem) { item in
                 ShareSheet(items: [item.url])
+            }
+            .sheet(isPresented: $showingPaywall) {
+                PurchaseView()
             }
         }
     }

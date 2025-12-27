@@ -18,6 +18,9 @@ struct PDFPacketBuilderApp: App {
                 .onAppear {
                     iapManager.loadProducts()
                 }
+                .onChange(of: iapManager.isPro) { newValue in
+                    appState.updateProStatus(newValue)
+                }
         }
     }
 }
