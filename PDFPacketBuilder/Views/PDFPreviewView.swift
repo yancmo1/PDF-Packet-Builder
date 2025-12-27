@@ -31,4 +31,3 @@ struct PDFPreviewView: UIViewRepresentable {
     pdfView.document = PDFDocument(data: pdfData)
 }
     }
-}
