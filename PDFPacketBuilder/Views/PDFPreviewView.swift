@@ -23,6 +23,9 @@ struct PDFPreviewView: UIViewRepresentable {
     }
     
     func updateUIView(_ pdfView: PDFView, context: Context) {
+        // Only update if document is nil or pdfData has changed
+        guard pdfView.document == nil else { return }
+        
         if let document = PDFDocument(data: pdfData) {
             pdfView.document = document
         }

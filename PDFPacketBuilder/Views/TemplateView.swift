@@ -152,7 +152,9 @@ struct TemplateView: View {
                 // Save a copy to Documents directory
                 let storageService = StorageService()
                 let savedFileName = "\(fileName).pdf"
-                _ = storageService.savePDFToDocuments(data: data, filename: savedFileName)
+                if storageService.savePDFToDocuments(data: data, filename: savedFileName) == nil {
+                    print("Warning: Failed to save PDF to Documents directory")
+                }
                 
                 let template = PDFTemplate(
                     name: fileName,
