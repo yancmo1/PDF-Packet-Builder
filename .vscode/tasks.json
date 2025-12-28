@@ -41,19 +41,6 @@
       "problemMatcher": []
     },
     {
-      "label": "Fastlane: Beta Upload (Wait)",
-      "type": "shell",
-      "command": "zsh",
-      "args": [
-        "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; export WAIT_FOR_PROCESSING=1; bundle exec fastlane beta"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": []
-    },
-    {
       "label": "Fastlane: TestFlight Status",
       "type": "shell",
       "command": "zsh",

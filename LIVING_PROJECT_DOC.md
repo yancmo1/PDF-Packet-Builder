@@ -577,7 +577,6 @@ Pre-configured tasks in `.vscode/tasks.json`:
 
 **Available Tasks:**
 - Fastlane: Beta Upload
-- Fastlane: Beta Upload (Wait)
 - Fastlane: TestFlight Status
 - Fastlane: Tests
 - Fastlane: Upload Metadata & Screenshots
@@ -776,6 +775,7 @@ Pre-configured tasks in `.vscode/tasks.json`:
 
 **External:**
 - None (uses only iOS SDK frameworks)
+- Xcode-managed project (no `Package.swift` / SwiftPM manifest in this repo)
 
 **iOS Frameworks:**
 - SwiftUI (UI)
@@ -800,7 +800,8 @@ Pre-configured tasks in `.vscode/tasks.json`:
 
 **Sensitive Data:**
 - No sensitive data stored
-- No network communication
+- No custom network communication in app code (offline-first)
+- StoreKit/App Store interactions are handled by Apple frameworks (standard transport security)
 - All processing local
 
 **IAP Security:**
@@ -981,6 +982,15 @@ Pre-configured tasks in `.vscode/tasks.json`:
 3. Ensure certificates and profiles valid
 4. Try Apple ID auth as fallback
 5. Check Fastlane logs for specific error
+
+#### Issue: App Store Connect asks for Export Compliance (encryption)
+
+**Cause:** App Store Connect can't infer export compliance from the build metadata, or the setting isn't declared in the app.
+
+**Solution (typical for apps using only exempt encryption / Apple system frameworks):**
+1. Ensure `Info.plist` includes:
+   - `ITSAppUsesNonExemptEncryption` = `false`
+2. Only change this if you add **non-exempt** encryption (custom crypto, proprietary protocols, etc.)
 
 #### Issue: App crashes on launch
 

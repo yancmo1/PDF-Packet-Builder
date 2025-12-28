@@ -54,4 +54,8 @@ Test this exact flow:
 - No new build systems or dependencies unless required
 - No emojis or marketing adjectives in UI text
 
+## Project build & compliance notes
+- This project is Xcode-managed (`PDFPacketBuilder.xcodeproj`) with **no `Package.swift`**.
+- Export compliance is declared in `PDFPacketBuilder/Resources/Info.plist` via `ITSAppUsesNonExemptEncryption = false`. Do not change this without product review.
+
 Keep implementation simple, human-structured, and App Store compliant.

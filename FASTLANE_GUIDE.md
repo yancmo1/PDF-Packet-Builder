@@ -123,7 +123,6 @@ Notes:
 **Template tasks** (JSONC):
 
 - `Fastlane: Beta Upload`
-- `Fastlane: Beta Upload (Wait)`
 - `Fastlane: TestFlight Status`
 - `Fastlane: Tests`
 - `Fastlane: Upload Metadata & Screenshots`
