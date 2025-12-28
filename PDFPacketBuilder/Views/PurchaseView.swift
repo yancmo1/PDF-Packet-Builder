@@ -45,8 +45,14 @@ struct PurchaseView: View {
                     }
                     .disabled(iapManager.isLoading)
                 } else {
-                    Text("Product not available")
-                        .foregroundColor(.secondary)
+                    VStack(spacing: 8) {
+                        Text("Product not available")
+                            .foregroundColor(.secondary)
+                        Button("Retry") {
+                            iapManager.loadProducts()
+                        }
+                        .disabled(iapManager.isLoading)
+                    }
                 }
 
                 Button("Restore Purchases") {
@@ -56,6 +62,20 @@ struct PurchaseView: View {
 
                 if let purchaseErrorMessage {
                     Text(purchaseErrorMessage)
+                        .foregroundColor(.red)
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                }
+
+                if let status = iapManager.lastPurchaseStatusMessage {
+                    Text(status)
+                        .foregroundColor(.secondary)
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                }
+
+                if let storeError = iapManager.lastStoreErrorMessage {
+                    Text(storeError)
                         .foregroundColor(.red)
                         .font(.footnote)
                         .multilineTextAlignment(.center)
@@ -93,13 +113,16 @@ struct PurchaseView: View {
     private func buy(_ product: Product) async {
         purchaseErrorMessage = nil
         do {
-            _ = try await iapManager.purchase(product)
-            await MainActor.run {
-                dismiss()
+            let transaction = try await iapManager.purchase(product)
+            // Only dismiss if an actual transaction was completed.
+            if transaction != nil {
+                await MainActor.run {
+                    dismiss()
+                }
             }
         } catch {
             await MainActor.run {
-                purchaseErrorMessage = "Purchase failed."
+                purchaseErrorMessage = "Purchase failed: \(error)"
             }
         }
     }

@@ -10,6 +10,8 @@ class IAPManager: NSObject, ObservableObject {
     @Published var products: [Product] = []
     @Published var purchasedProductIDs = Set<String>()
     @Published var isLoading = false
+    @Published var lastStoreErrorMessage: String?
+    @Published var lastPurchaseStatusMessage: String?
     
     static let proProductID = "com.yancmo.pdfpacketbuilder.pro.unlock"
     
@@ -41,19 +43,31 @@ class IAPManager: NSObject, ObservableObject {
     @MainActor
     func loadProducts() {
         isLoading = true
-        Task {
+        lastStoreErrorMessage = nil
+        lastPurchaseStatusMessage = nil
+
+        Task { @MainActor in
+            defer { isLoading = false }
             do {
                 let products = try await Product.products(for: [Self.proProductID])
                 self.products = products
                 await updatePurchasedProducts()
+                if products.isEmpty {
+                    lastStoreErrorMessage = "No products returned for \(Self.proProductID). (This usually means the Product ID doesn't exist in App Store Connect, isn't available yet, or the build isn't eligible for StoreKit testing.)"
+                }
             } catch {
-                print("Failed to load products: \(error)")
+                let message = "Failed to load product \(Self.proProductID): \(error)"
+                self.lastStoreErrorMessage = message
+                print(message)
             }
-            isLoading = false
         }
     }
     
+    @MainActor
     func purchase(_ product: Product) async throws -> Transaction? {
+        lastStoreErrorMessage = nil
+        lastPurchaseStatusMessage = "Starting purchase…"
+
         let result = try await product.purchase()
         
         switch result {
@@ -61,12 +75,22 @@ class IAPManager: NSObject, ObservableObject {
             let transaction = try checkVerified(verification)
             await updatePurchasedProducts()
             await transaction.finish()
+            self.lastPurchaseStatusMessage = "Purchase successful."
             return transaction
             
         case .userCancelled, .pending:
+            switch result {
+            case .userCancelled:
+                self.lastPurchaseStatusMessage = "Purchase cancelled."
+            case .pending:
+                self.lastPurchaseStatusMessage = "Purchase pending approval."
+            default:
+                break
+            }
             return nil
             
         @unknown default:
+            self.lastPurchaseStatusMessage = "Purchase did not complete (unknown result)."
             return nil
         }
     }
@@ -74,11 +98,16 @@ class IAPManager: NSObject, ObservableObject {
     @MainActor
     func restorePurchases() async {
         isLoading = true
+        lastStoreErrorMessage = nil
+        lastPurchaseStatusMessage = nil
         do {
             try await AppStore.sync()
             await updatePurchasedProducts()
+            lastPurchaseStatusMessage = "Restore completed."
         } catch {
-            print("Failed to restore purchases: \(error)")
+            let message = "Failed to restore purchases: \(error)"
+            lastStoreErrorMessage = message
+            print(message)
         }
         isLoading = false
     }
