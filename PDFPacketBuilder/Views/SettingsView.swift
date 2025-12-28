@@ -18,7 +18,7 @@ struct SettingsView: View {
                     HStack {
                         Text("Status")
                         Spacer()
-                        if iapManager.isPro {
+                        if iapManager.isProUnlocked {
                             Text("Pro")
                                 .foregroundColor(.green)
                                 .fontWeight(.semibold)
@@ -29,7 +29,7 @@ struct SettingsView: View {
                     }
                 }
                 
-                if !iapManager.isPro {
+                if !iapManager.isProUnlocked {
                     Section(header: Text("Free Plan Limits")) {
                         HStack {
                             Text("Templates")

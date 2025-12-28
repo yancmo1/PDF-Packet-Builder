@@ -15,17 +15,17 @@ struct PurchaseView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 16) {
-                Text("Pro")
+                Text("Unlock Pro")
                     .font(.title2)
                     .fontWeight(.semibold)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Unlock:")
+                    Text("Removes limits:")
                         .font(.headline)
 
-                    Text("• More than 1 template")
-                    Text("• More than 10 recipients per generation")
-                    Text("• Longer log retention")
+                    Text("• Unlimited recipients per batch")
+                    Text("• Full send history")
+                    Text("• Export logs as CSV")
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()

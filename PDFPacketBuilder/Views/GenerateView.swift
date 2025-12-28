@@ -17,6 +17,7 @@ struct GenerateView: View {
     @State private var currentMailItem: MailItem?
     @State private var showingPaywall = false
     @State private var showingMailUnavailableAlert = false
+    @State private var showingRecipientLimitAlert = false
     
     private let pdfService = PDFService()
     
@@ -65,32 +66,15 @@ struct GenerateView: View {
                             .background(Color(.systemGray6))
                             .cornerRadius(10)
                             
-                            if !appState.canGenerateWithRecipientCount(appState.recipients.count) {
-                                HStack {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .foregroundColor(.orange)
-                                    Text("Free plan: 10 recipients max")
-                                        .font(.caption)
-                                    Spacer()
-                                    Button("Upgrade") {
-                                        showingPaywall = true
-                                    }
-                                    .font(.caption)
-                                }
-                                .padding()
-                                .background(Color.orange.opacity(0.1))
-                                .cornerRadius(8)
-                            }
-                            
-                            Button(action: generatePDFs) {
+                            Button(action: attemptGenerate) {
                                 Label("Generate PDFs", systemImage: "doc.on.doc")
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(appState.canGenerateWithRecipientCount(appState.recipients.count) ? Color.blue : Color.gray)
+                                    .background(Color.blue)
                                     .foregroundColor(.white)
                                     .cornerRadius(10)
                             }
-                            .disabled(isGenerating || !appState.canGenerateWithRecipientCount(appState.recipients.count))
+                            .disabled(isGenerating)
                             
                             // Generated PDFs list
                             if !generatedPDFs.isEmpty {
@@ -184,12 +168,29 @@ struct GenerateView: View {
             .sheet(isPresented: $showingPaywall) {
                 PurchaseView()
             }
+            .alert("Limit reached", isPresented: $showingRecipientLimitAlert) {
+                Button("OK", role: .cancel) { }
+                Button("Unlock Pro") {
+                    showingPaywall = true
+                }
+            } message: {
+                Text("Free version supports 10 recipients per batch. Unlock Pro to remove limits.")
+            }
             .alert("Mail Not Available", isPresented: $showingMailUnavailableAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text("Mail is not configured on this device. Please set up Mail in Settings.")
             }
         }
+    }
+
+    private func attemptGenerate() {
+        if !iapManager.isProUnlocked && appState.recipients.count > AppState.freeMaxRecipients {
+            showingRecipientLimitAlert = true
+            return
+        }
+
+        generatePDFs()
     }
     
     private func generatePDFs() {

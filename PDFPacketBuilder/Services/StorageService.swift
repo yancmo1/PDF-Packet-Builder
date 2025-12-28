@@ -15,7 +15,8 @@ class StorageService {
     private let templateKey = "pdfTemplate"
     private let recipientsKey = "recipients"
     private let logsKey = "sendLogs"
-    private let proStatusKey = "isPro"
+    private let proStatusKey = "isProUnlocked"
+    private let legacyProStatusKey = "isPro"
     private let csvImportKey = "csvImport"
     
     // MARK: - Template Storage
@@ -65,10 +66,14 @@ class StorageService {
     
     func saveProStatus(_ isPro: Bool) {
         defaults.set(isPro, forKey: proStatusKey)
+        defaults.set(isPro, forKey: legacyProStatusKey)
     }
     
     func loadProStatus() -> Bool {
-        return defaults.bool(forKey: proStatusKey)
+        if defaults.object(forKey: proStatusKey) != nil {
+            return defaults.bool(forKey: proStatusKey)
+        }
+        return defaults.bool(forKey: legacyProStatusKey)
     }
 
     // MARK: - CSV Import Storage
