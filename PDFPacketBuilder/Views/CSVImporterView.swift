@@ -15,6 +15,8 @@ struct CSVImporterView: View {
     @State private var showingDocumentPicker = false
     @State private var importedRecipients: [Recipient] = []
     @State private var isProcessing = false
+    @State private var showingImportError = false
+    @State private var importErrorMessage: String?
     
     private let csvService = CSVService()
     
@@ -88,7 +90,8 @@ struct CSVImporterView: View {
             .sheet(isPresented: $showingDocumentPicker) {
                 DocumentPicker(
                     contentTypes: [.commaSeparatedText, .plainText],
-                    onSelected: handleCSVImport
+                    onSelected: handleCSVImport,
+                    onFailure: handlePickerFailure
                 )
             }
             .overlay {
@@ -99,6 +102,13 @@ struct CSVImporterView: View {
                         .cornerRadius(10)
                         .shadow(radius: 10)
                 }
+            }
+            .alert("Import failed", isPresented: $showingImportError) {
+                Button("OK", role: .cancel) {
+                    importErrorMessage = nil
+                }
+            } message: {
+                Text(importErrorMessage ?? "Unable to import the file.")
             }
         }
     }
@@ -118,6 +128,8 @@ struct CSVImporterView: View {
             } catch {
                 print("Error reading CSV: \(error)")
                 DispatchQueue.main.async {
+                    importErrorMessage = "Could not read the selected CSV. Please try again or pick a different file."
+                    showingImportError = true
                     self.isProcessing = false
                 }
             }
@@ -129,5 +141,10 @@ struct CSVImporterView: View {
         allRecipients.append(contentsOf: importedRecipients)
         appState.saveRecipients(allRecipients)
         dismiss()
+    }
+
+    private func handlePickerFailure(_ error: Error) {
+        importErrorMessage = "Access to the selected file was denied. Please choose a file stored locally or grant permission."
+        showingImportError = true
     }
 }

@@ -14,6 +14,8 @@ struct TemplateView: View {
     @State private var showingPaywall = false
     @State private var showingReplaceConfirmation = false
     @State private var showingRemoveConfirmation = false
+    @State private var showingImportError = false
+    @State private var importErrorMessage: String?
     @State private var pendingPDFUrl: URL?
     
     private let pdfService = PDFService()
@@ -130,7 +132,10 @@ struct TemplateView: View {
             }
             .navigationTitle("Template")
             .sheet(isPresented: $showingDocumentPicker) {
-                DocumentPicker(onPDFSelected: handlePDFImport)
+                DocumentPicker(
+                    onPDFSelected: handlePDFImport,
+                    onFailure: handlePickerFailure
+                )
             }
             .sheet(isPresented: $showingPaywall) {
                 PurchaseView()
@@ -163,6 +168,13 @@ struct TemplateView: View {
                 }
             } message: {
                 Text("This will remove the template and clear mapping and history.")
+            }
+            .alert("Import failed", isPresented: $showingImportError) {
+                Button("OK", role: .cancel) {
+                    importErrorMessage = nil
+                }
+            } message: {
+                Text(importErrorMessage ?? "Unable to import the PDF.")
             }
         }
     }
@@ -215,11 +227,18 @@ struct TemplateView: View {
             } catch {
                 print("Error importing PDF: \(error)")
                 DispatchQueue.main.async {
+                    importErrorMessage = "Could not read the selected PDF. Please try again or pick a different file."
+                    showingImportError = true
                     isProcessing = false
                     pendingPDFUrl = nil
                 }
             }
         }
+    }
+
+    private func handlePickerFailure(_ error: Error) {
+        importErrorMessage = "Access to the selected file was denied. Please choose a file stored locally or grant permission."
+        showingImportError = true
     }
 }
 
