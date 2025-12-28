@@ -18,7 +18,7 @@ struct PDFPacketBuilderApp: App {
                 .onAppear {
                     iapManager.loadProducts()
                 }
-                .onChange(of: iapManager.isPro) { newValue in
+                .onChange(of: iapManager.isProUnlocked) { newValue in
                     appState.updateProStatus(newValue)
                 }
         }

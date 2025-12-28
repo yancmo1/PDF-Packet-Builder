@@ -9,9 +9,11 @@ import SwiftUI
 
 struct LogsView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var iapManager: IAPManager
     @State private var showingExportOptions = false
     @State private var showingShareSheet = false
     @State private var exportURL: URL?
+    @State private var showingPurchaseSheet = false
     
     var body: some View {
         NavigationView {
@@ -40,8 +42,14 @@ struct LogsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
-                        Button(action: exportAsCSV) {
-                            Label("Export Logs", systemImage: "square.and.arrow.up")
+                        if iapManager.isProUnlocked {
+                            Button(action: exportAsCSV) {
+                                Label("Export Logs", systemImage: "square.and.arrow.up")
+                            }
+                        } else {
+                            Button(action: { showingPurchaseSheet = true }) {
+                                Label("Unlock Pro", systemImage: "star.fill")
+                            }
                         }
                         if !appState.sendLogs.isEmpty {
                             Divider()
@@ -59,6 +67,9 @@ struct LogsView: View {
                 if let url = exportURL {
                     ShareSheet(items: [url])
                 }
+            }
+            .sheet(isPresented: $showingPurchaseSheet) {
+                PurchaseView()
             }
         }
     }

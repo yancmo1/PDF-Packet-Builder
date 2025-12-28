@@ -10,7 +10,7 @@ class AppState: ObservableObject {
     @Published var pdfTemplate: PDFTemplate?
     @Published var recipients: [Recipient] = []
     @Published var sendLogs: [SendLog] = []
-    @Published var isPro: Bool = false
+    @Published var isProUnlocked: Bool = false
     @Published var csvImport: CSVImportSnapshot? = nil
     
     private let storageService = StorageService()
@@ -28,16 +28,16 @@ class AppState: ObservableObject {
         self.pdfTemplate = storageService.loadTemplate()
         self.recipients = storageService.loadRecipients()
         self.sendLogs = storageService.loadLogs()
-        self.isPro = storageService.loadProStatus()
+        self.isProUnlocked = storageService.loadProStatus()
         self.csvImport = storageService.loadCSVImport()
     }
     
     func canAddTemplate() -> Bool {
-        return isPro || pdfTemplate == nil
+        return isProUnlocked || pdfTemplate == nil
     }
     
     func canGenerateWithRecipientCount(_ count: Int) -> Bool {
-        return isPro || count <= Self.freeMaxRecipients
+        return isProUnlocked || count <= Self.freeMaxRecipients
     }
     
     func saveTemplate(_ template: PDFTemplate) {
@@ -66,12 +66,13 @@ class AppState: ObservableObject {
     }
     
     func updateProStatus(_ isPro: Bool) {
-        self.isPro = isPro
+        self.isProUnlocked = isPro
         storageService.saveProStatus(isPro)
+        cleanOldLogs()
     }
     
     func cleanOldLogs() {
-        if !isPro {
+        if !isProUnlocked {
             let cutoffDate = Calendar.current.date(byAdding: .day, value: -Self.freeLogRetentionDays, to: Date()) ?? Date()
             sendLogs = sendLogs.filter { $0.sentDate > cutoffDate }
             storageService.saveLogs(sendLogs)
@@ -106,14 +107,14 @@ class AppState: ObservableObject {
         storageService.saveTemplate(nil)
         
         // Clear related data for free tier
-        if !isPro {
+        if !isProUnlocked {
             clearMappingAndHistory()
         }
     }
     
     func replaceTemplate(_ newTemplate: PDFTemplate) {
         // For free tier, clear old data before replacing
-        if !isPro {
+        if !isProUnlocked {
             clearMappingAndHistory()
         }
         

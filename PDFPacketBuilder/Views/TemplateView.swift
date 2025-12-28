@@ -169,10 +169,10 @@ struct TemplateView: View {
     
     private func handlePDFImport(url: URL) {
         // Check if this is a replacement (template exists and user is not pro)
-        if appState.pdfTemplate != nil && !iapManager.isPro {
+        if appState.pdfTemplate != nil && !iapManager.isProUnlocked {
             pendingPDFUrl = url
             showingReplaceConfirmation = true
-        } else if appState.pdfTemplate != nil && iapManager.isPro {
+        } else if appState.pdfTemplate != nil && iapManager.isProUnlocked {
             // Pro users can add more templates, just process it
             processPDFImport(url: url, isReplacement: false)
         } else {

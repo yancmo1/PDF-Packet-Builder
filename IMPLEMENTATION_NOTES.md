@@ -25,7 +25,7 @@ This PR successfully transforms the repository into a real iOS app project for P
 6. **Settings**: IAP, limits display, app info
 
 ### 4. Monetization (StoreKit 2) ✅
-- Single "Unlock Pro" product: `com.yancmo.pdfpacketbuilder.pro`
+- Single "Unlock Pro" product: `com.yancmo.pdfpacketbuilder.pro.unlock`
 - Clean paywall screen with feature list
 - Free plan limits enforced:
   - 1 template max
