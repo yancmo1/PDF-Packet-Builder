@@ -1,5 +1,8 @@
 # Copilot Instructions — PDF Packet Builder (v1, iOS 16+)
 
+## Must Follow Instructions
+For full project context and procedures, read LIVING_PROJECT_DOC first. This file is the operating rules.
+
 ## Product Promise
 Build and send personalized **fillable AcroForm PDFs** from a CSV list, log sends **only after confirmed delivery actions**, and export logs as CSV. Offline-first. No backend.
 
