@@ -1,6 +1,6 @@
 //
 //  LogsView.swift
-//  PDFPacketSender
+//  PDFPacketBuilder
 //
 //  View for displaying send logs
 //
@@ -21,10 +21,10 @@ struct LogsView: View {
                         Image(systemName: "list.bullet.rectangle")
                             .font(.system(size: 80))
                             .foregroundColor(.gray)
-                        Text("No Logs Yet")
+                        Text("No send history")
                             .font(.title2)
                             .fontWeight(.semibold)
-                        Text("Send logs will appear here")
+                        Text("Sent PDFs will appear here")
                             .foregroundColor(.secondary)
                     }
                 } else {
@@ -41,7 +41,7 @@ struct LogsView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: exportAsCSV) {
-                            Label("Export as CSV", systemImage: "tablecells")
+                            Label("Export Logs", systemImage: "square.and.arrow.up")
                         }
                         if !appState.sendLogs.isEmpty {
                             Divider()
@@ -102,47 +102,44 @@ struct LogsView: View {
 struct LogRow: View {
     let log: SendLog
     
-    private var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter.string(from: log.timestamp)
-    }
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
                 Text(log.recipientName)
                     .fontWeight(.semibold)
                 Spacer()
-                Text(log.status)
+                Text(log.method.rawValue)
                     .font(.caption)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(statusColor)
+                    .background(methodColor)
                     .foregroundColor(.white)
                     .cornerRadius(4)
             }
             
-            Text(log.recipientEmail)
+            Text(log.templateName)
                 .font(.caption)
                 .foregroundColor(.secondary)
             
-            Text(formattedDate)
-                .font(.caption2)
-                .foregroundColor(.secondary)
+            HStack {
+                Text(log.outputFileName)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text(log.formattedSentDate)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
         }
         .padding(.vertical, 4)
     }
     
-    private var statusColor: Color {
-        switch log.status.lowercased() {
-        case "sent", "shared":
+    private var methodColor: Color {
+        switch log.method {
+        case .share:
+            return .blue
+        case .mail:
             return .green
-        case "failed":
-            return .red
-        default:
-            return .gray
         }
     }
 }

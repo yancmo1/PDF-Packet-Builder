@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import MessageUI
 
 struct GenerateView: View {
     @EnvironmentObject var appState: AppState
@@ -11,8 +12,11 @@ struct GenerateView: View {
     @State private var isGenerating = false
     @State private var generatedPDFs: [(recipient: Recipient, pdfData: Data)] = []
     @State private var showingShareSheet = false
+    @State private var showingMailComposer = false
     @State private var currentShareItem: ShareItem?
+    @State private var currentMailItem: MailItem?
     @State private var showingPaywall = false
+    @State private var showingMailUnavailableAlert = false
     
     private let pdfService = PDFService()
     
@@ -104,11 +108,31 @@ struct GenerateView: View {
                                                     .foregroundColor(.secondary)
                                             }
                                             Spacer()
+                                            
+                                            // Mail button
+                                            Button(action: {
+                                                sendMail(item)
+                                            }) {
+                                                Label("Mail", systemImage: "envelope")
+                                                    .font(.caption)
+                                                    .padding(.horizontal, 10)
+                                                    .padding(.vertical, 6)
+                                                    .background(Color.green)
+                                                    .foregroundColor(.white)
+                                                    .cornerRadius(6)
+                                            }
+                                            
+                                            // Share button
                                             Button(action: {
                                                 sharePDF(item)
                                             }) {
-                                                Image(systemName: "square.and.arrow.up")
-                                                    .foregroundColor(.blue)
+                                                Label("Share", systemImage: "square.and.arrow.up")
+                                                    .font(.caption)
+                                                    .padding(.horizontal, 10)
+                                                    .padding(.vertical, 6)
+                                                    .background(Color.blue)
+                                                    .foregroundColor(.white)
+                                                    .cornerRadius(6)
                                             }
                                         }
                                         .padding()
@@ -133,10 +157,37 @@ struct GenerateView: View {
                 }
             }
             .sheet(item: $currentShareItem) { item in
-                ShareSheet(items: [item.url])
+                ShareSheet(items: [item.url]) { completed in
+                    if completed {
+                        // Log the send only after successful share
+                        logSend(recipientName: item.recipientName, templateName: item.templateName, fileName: item.fileName, method: .share)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingMailComposer) {
+                if let mailItem = currentMailItem {
+                    MailComposer(
+                        subject: "\(mailItem.templateName) PDF",
+                        recipient: mailItem.recipientEmail,
+                        pdfData: mailItem.pdfData,
+                        fileName: mailItem.fileName
+                    ) { result in
+                        if result == .sent {
+                            // Log the send only after mail was sent
+                            logSend(recipientName: mailItem.recipientName, templateName: mailItem.templateName, fileName: mailItem.fileName, method: .mail)
+                        }
+                        showingMailComposer = false
+                        currentMailItem = nil
+                    }
+                }
             }
             .sheet(isPresented: $showingPaywall) {
                 PurchaseView()
+            }
+            .alert("Mail Not Available", isPresented: $showingMailUnavailableAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Mail is not configured on this device. Please set up Mail in Settings.")
             }
         }
     }
@@ -167,17 +218,42 @@ struct GenerateView: View {
         let fileName = "\(appState.pdfTemplate?.name ?? "document")_\(item.recipient.fullName).pdf"
         
         if let url = StorageService().savePDFToDocuments(data: item.pdfData, filename: fileName) {
-            currentShareItem = ShareItem(url: url)
-            
-            // Log the send
-            let log = SendLog(
+            currentShareItem = ShareItem(
+                url: url,
                 recipientName: item.recipient.fullName,
-                recipientEmail: item.recipient.email,
-                pdfName: fileName,
-                status: "Shared"
+                templateName: appState.pdfTemplate?.name ?? "document",
+                fileName: fileName
             )
-            appState.addSendLog(log)
         }
+    }
+    
+    private func sendMail(_ item: (recipient: Recipient, pdfData: Data)) {
+        guard MFMailComposeViewController.isAvailable else {
+            showingMailUnavailableAlert = true
+            return
+        }
+        
+        let fileName = "\(appState.pdfTemplate?.name ?? "document")_\(item.recipient.fullName).pdf"
+        
+        currentMailItem = MailItem(
+            recipientName: item.recipient.fullName,
+            recipientEmail: item.recipient.email,
+            templateName: appState.pdfTemplate?.name ?? "document",
+            fileName: fileName,
+            pdfData: item.pdfData
+        )
+        showingMailComposer = true
+    }
+    
+    private func logSend(recipientName: String, templateName: String, fileName: String, method: SendLog.SendMethod) {
+        let log = SendLog(
+            recipientName: recipientName,
+            templateName: templateName,
+            outputFileName: fileName,
+            sentDate: Date(),
+            method: method
+        )
+        appState.addSendLog(log)
     }
 }
 
@@ -203,6 +279,18 @@ struct EmptyStateView: View {
 struct ShareItem: Identifiable {
     let id = UUID()
     let url: URL
+    let recipientName: String
+    let templateName: String
+    let fileName: String
+}
+
+struct MailItem: Identifiable {
+    let id = UUID()
+    let recipientName: String
+    let recipientEmail: String
+    let templateName: String
+    let fileName: String
+    let pdfData: Data
 }
 
 struct GenerateView_Previews: PreviewProvider {

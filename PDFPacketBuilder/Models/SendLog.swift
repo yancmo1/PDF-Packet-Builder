@@ -1,6 +1,6 @@
 //
 //  SendLog.swift
-//  PDFPacketSender
+//  PDFPacketBuilder
 //
 //  Model for tracking sent PDFs
 //
@@ -10,19 +10,29 @@ import Foundation
 struct SendLog: Codable, Identifiable {
     let id: UUID
     var recipientName: String
-    var recipientEmail: String
-    var pdfName: String
-    var timestamp: Date
-    var status: String
-    var notes: String?
+    var templateName: String
+    var outputFileName: String
+    var sentDate: Date
+    var method: SendMethod
     
-    init(id: UUID = UUID(), recipientName: String, recipientEmail: String, pdfName: String, timestamp: Date = Date(), status: String = "Sent", notes: String? = nil) {
+    enum SendMethod: String, Codable {
+        case share = "Share"
+        case mail = "Mail"
+    }
+    
+    init(id: UUID = UUID(), recipientName: String, templateName: String, outputFileName: String, sentDate: Date = Date(), method: SendMethod) {
         self.id = id
         self.recipientName = recipientName
-        self.recipientEmail = recipientEmail
-        self.pdfName = pdfName
-        self.timestamp = timestamp
-        self.status = status
-        self.notes = notes
+        self.templateName = templateName
+        self.outputFileName = outputFileName
+        self.sentDate = sentDate
+        self.method = method
+    }
+    
+    // Helper to format sentDate as MM-DD-YY
+    var formattedSentDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd-yy"
+        return formatter.string(from: sentDate)
     }
 }
