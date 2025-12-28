@@ -11,7 +11,7 @@ class IAPManager: NSObject, ObservableObject {
     @Published var purchasedProductIDs = Set<String>()
     @Published var isLoading = false
     
-    static let proProductID = "pdfpacketbuilder.pro.unlock"
+    static let proProductID = "com.yancmo.pdfpacketbuilder.pro.unlock"
     
     private var updateListenerTask: Task<Void, Error>?
     
@@ -101,10 +101,6 @@ class IAPManager: NSObject, ObservableObject {
     
     var isProUnlocked: Bool {
         purchasedProductIDs.contains(Self.proProductID)
-    }
-
-    var isPro: Bool {
-        isProUnlocked
     }
     
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {

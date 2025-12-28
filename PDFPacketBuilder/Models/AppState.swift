@@ -135,8 +135,4 @@ class AppState: ObservableObject {
         self.sendLogs = []
         storageService.saveLogs([])
     }
-
-    var isPro: Bool {
-        isProUnlocked
-    }
 }
