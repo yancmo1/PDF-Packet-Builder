@@ -2,6 +2,8 @@
 
 iOS app for filling PDF forms with recipient data from CSV files.
 
+> **📖 For detailed documentation, see [PROJECT.md](PROJECT.md)** - comprehensive guide covering architecture, features, deployment, and more.
+
 ## What it does
 
 Import a PDF form, import a CSV file with recipient data, map the fields, and generate filled PDFs for each recipient.
@@ -67,6 +69,28 @@ Jane,Smith,jane@example.com
 ```
 
 Map any columns to PDF fields. Email is optional.
+
+## Documentation
+
+- **[PROJECT.md](PROJECT.md)** - Living project documentation (comprehensive)
+  - Complete feature documentation
+  - Architecture and code patterns
+  - In-App Purchase details
+  - App Store Connect setup
+  - Build and deployment
+  - Future features roadmap
+  - Troubleshooting guide
+
+- **[FASTLANE_GUIDE.md](FASTLANE_GUIDE.md)** - Detailed Fastlane setup
+- **[IMPLEMENTATION_NOTES.md](IMPLEMENTATION_NOTES.md)** - Historical notes
+
+## Contributing
+
+Before contributing:
+1. Read [PROJECT.md](PROJECT.md) for architecture and conventions
+2. Check [.github/copilot-instructions.md](.github/copilot-instructions.md) for coding guidelines
+3. Follow existing code patterns
+4. Update documentation with code changes
 
 ## License
 
