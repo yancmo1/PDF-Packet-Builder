@@ -46,21 +46,26 @@ platform :ios do
   end
 
   private_lane :ensure_auth_available do |api_key:|
-    return if api_key
+    # NOTE: Don't use `return` inside a lane block; it can raise LocalJumpError.
+
+    # API key preferred
+    has_api_key = !api_key.nil?
 
     # Apple ID fallback: accept either a session OR user+app-specific password.
     has_session = env_configured?("FASTLANE_SESSION")
     has_user = env_configured?("FASTLANE_USER")
     has_app_pw = env_configured?("FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD")
+    has_apple_id_auth = has_session || (has_user && has_app_pw)
 
-    return if has_session
-    return if has_user && has_app_pw
-
-    UI.user_error!(
-      "No App Store Connect auth configured.\n" \
-      "Preferred: set ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_PATH.\n" \
-      "Fallback: set FASTLANE_SESSION or FASTLANE_USER + FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD."
-    )
+    if has_api_key || has_apple_id_auth
+      true
+    else
+      UI.user_error!(
+        "No App Store Connect auth configured.\n" \
+        "Preferred: set ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_PATH.\n" \
+        "Fallback: set FASTLANE_SESSION or FASTLANE_USER + FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD."
+      )
+    end
   end
 
   desc "Run unit/UI tests"
@@ -97,11 +102,31 @@ platform :ios do
       skip_waiting_for_build_processing: !should_wait
     }
 
+    # Distribution to testers can require higher API key privileges than uploading.
+    # Default to upload-only unless explicitly requested.
+    distribute = ENV["TF_DISTRIBUTE"].to_s == "1" || groups.any?
+    upload_args[:skip_submission] = !distribute
+
+    # Explicit override: force upload-only.
+    upload_args[:skip_submission] = true if ENV["TF_SKIP_SUBMISSION"].to_s == "1"
+
     upload_args[:groups] = groups if groups.any?
     upload_args[:api_key] = api_key if api_key
     upload_args[:username] = env_value("FASTLANE_USER") if api_key.nil? && env_configured?("FASTLANE_USER")
 
-    upload_to_testflight(**upload_args)
+    begin
+      upload_to_testflight(**upload_args)
+    rescue Spaceship::AccessForbiddenError => e
+      # Some API keys (role/permissions) can upload binaries but cannot perform distribution actions
+      # like setting export compliance / distributing to tester groups.
+      if upload_args[:skip_submission]
+        raise
+      end
+
+      UI.important("Build upload/processing completed, but TestFlight distribution was forbidden for this API key.")
+      UI.important("Build is uploaded. To automate distribution, use an API key with Admin/App Manager permissions, or fall back to Apple ID auth.")
+      UI.important("Error: #{e.message}")
+    end
   end
 
   desc "Print the latest TestFlight build number"

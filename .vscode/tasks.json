@@ -20,7 +20,7 @@
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane tests"
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane tests"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -33,7 +33,7 @@
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane beta"
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane beta"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -46,7 +46,7 @@
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; export WAIT_FOR_PROCESSING=1; bundle exec fastlane beta"
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; export WAIT_FOR_PROCESSING=1; bundle exec fastlane beta"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -59,7 +59,7 @@
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane tf_status"
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane tf_status"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -72,7 +72,7 @@
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane upload_metadata"
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane upload_metadata"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -85,7 +85,7 @@
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane release"
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane release"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -98,7 +98,7 @@
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane release_full"
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane release_full"
       ],
       "options": {
         "cwd": "${workspaceFolder}"

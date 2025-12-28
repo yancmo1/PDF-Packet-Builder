@@ -17,5 +17,12 @@ export FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
 # Optional: set to 1 to wait for App Store processing after upload
 export WAIT_FOR_PROCESSING="0"
 
+# Optional: set to 1 to attempt distribution to testers after processing.
+# Note: this can require an API key with Admin/App Manager privileges.
+export TF_DISTRIBUTE="0"
+
+# Optional: force upload-only (skip TestFlight distribution actions)
+export TF_SKIP_SUBMISSION="0"
+
 # Optional: comma-separated TestFlight groups for external distribution
 # export TF_GROUPS="Internal Testers,Beta Testers"
