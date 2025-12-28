@@ -29,6 +29,27 @@ Import a PDF form, import a CSV file with recipient data, map the fields, and ge
 4. Update IAP product IDs in `IAPManager.swift`
 5. Build and run
 
+## Fastlane (TestFlight / App Store)
+
+This repo is set up to run Fastlane via Bundler for reproducible builds.
+
+- Config lives in `fastlane/Fastfile` and `fastlane/Appfile`
+- VS Code tasks live in `.vscode/tasks.json`
+
+### App Store Connect authentication
+
+Preferred: App Store Connect API key via env vars. Apple ID auth is supported as a fallback.
+
+- Copy `.env.example` → `.env` (local only) **or** copy `.envrc.example` → `.envrc` (direnv)
+- Set:
+	- `ASC_KEY_ID`
+	- `ASC_ISSUER_ID`
+	- `ASC_KEY_PATH` (absolute path to your `.p8`)
+
+The `.p8` key should live outside the repo (for example under `$HOME/.appstoreconnect/private_keys/`).
+
+Fallback (Apple ID): set `FASTLANE_USER` and `FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD` (or `FASTLANE_SESSION`).
+
 ## Free Plan Limits
 
 - 1 template max

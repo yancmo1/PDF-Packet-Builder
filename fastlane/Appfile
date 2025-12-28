@@ -1,0 +1,9 @@
+# Appfile
+
+app_identifier("com.yancmo.pdfpacketbuilder")
+
+# From Xcode project settings (DEVELOPMENT_TEAM)
+team_id("9PHS626XUN")
+
+# Optional (only needed for Apple ID auth fallback):
+# apple_id("you@example.com")

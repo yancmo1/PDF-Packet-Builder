@@ -1,0 +1,109 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Fastlane: Bootstrap (bundle install)",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-lc",
+        "bundle install --path vendor/bundle"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Fastlane: Tests",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-lc",
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane tests"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Fastlane: Beta Upload",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-lc",
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane beta"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Fastlane: Beta Upload (Wait)",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-lc",
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; export WAIT_FOR_PROCESSING=1; bundle exec fastlane beta"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Fastlane: TestFlight Status",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-lc",
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane tf_status"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Fastlane: Upload Metadata & Screenshots",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-lc",
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane upload_metadata"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Fastlane: Submit for App Store Review",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-lc",
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane release"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Fastlane: Full App Store Submission",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-lc",
+        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\"; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane release_full"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

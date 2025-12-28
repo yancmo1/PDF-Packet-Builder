@@ -1,0 +1,158 @@
+default_platform(:ios)
+
+APP_IDENTIFIER = "com.yancmo.pdfpacketbuilder"
+PROJECT_PATH = "PDFPacketBuilder.xcodeproj"
+SCHEME = "PDFPacketBuilder"
+
+def env_value(name)
+  ENV[name].to_s.strip
+end
+
+def env_configured?(name)
+  v = env_value(name)
+  return false if v.empty?
+  # Common committed placeholders
+  return false if v.include?("YOUR_KEY_ID") || v.include?("YOUR_ISSUER_ID") || v.include?("AuthKey_YOUR_KEY_ID")
+  return false if v == "you@example.com" || v.include?("xxxx-xxxx-xxxx-xxxx")
+  true
+end
+
+platform :ios do
+  private_lane :maybe_setup_api_key do
+    key_id = env_value("ASC_KEY_ID")
+    issuer_id = env_value("ASC_ISSUER_ID")
+    key_path = env_value("ASC_KEY_PATH")
+
+    api_key = nil
+
+    unless env_configured?("ASC_KEY_ID") && env_configured?("ASC_ISSUER_ID") && env_configured?("ASC_KEY_PATH")
+      UI.message("ASC API key env vars not set (or still placeholders). Falling back to Apple ID auth if configured.")
+      UI.message("Expected: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_PATH")
+    else
+      if File.exist?(key_path)
+        api_key = app_store_connect_api_key(
+          key_id: key_id,
+          issuer_id: issuer_id,
+          key_filepath: key_path,
+          duration: 1200
+        )
+      else
+        UI.important("ASC_KEY_PATH does not exist: #{key_path}")
+        UI.important("Skipping API key setup; will fall back to Apple ID auth if available.")
+      end
+    end
+
+    api_key
+  end
+
+  private_lane :ensure_auth_available do |api_key:|
+    return if api_key
+
+    # Apple ID fallback: accept either a session OR user+app-specific password.
+    has_session = env_configured?("FASTLANE_SESSION")
+    has_user = env_configured?("FASTLANE_USER")
+    has_app_pw = env_configured?("FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD")
+
+    return if has_session
+    return if has_user && has_app_pw
+
+    UI.user_error!(
+      "No App Store Connect auth configured.\n" \
+      "Preferred: set ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_PATH.\n" \
+      "Fallback: set FASTLANE_SESSION or FASTLANE_USER + FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD."
+    )
+  end
+
+  desc "Run unit/UI tests"
+  lane :tests do
+    scan(
+      project: PROJECT_PATH,
+      scheme: SCHEME,
+      clean: true
+    )
+  end
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    api_key = maybe_setup_api_key
+
+    # Fail fast before spending time archiving if neither auth method is configured.
+    ensure_auth_available(api_key: api_key)
+
+    build_app(
+      project: PROJECT_PATH,
+      scheme: SCHEME,
+      clean: true,
+      export_method: "app-store"
+    )
+
+    should_wait = ENV["WAIT_FOR_PROCESSING"].to_s == "1"
+
+    groups = ENV["TF_GROUPS"].to_s
+      .split(",")
+      .map(&:strip)
+      .reject(&:empty?)
+
+    upload_args = {
+      skip_waiting_for_build_processing: !should_wait
+    }
+
+    upload_args[:groups] = groups if groups.any?
+    upload_args[:api_key] = api_key if api_key
+    upload_args[:username] = env_value("FASTLANE_USER") if api_key.nil? && env_configured?("FASTLANE_USER")
+
+    upload_to_testflight(**upload_args)
+  end
+
+  desc "Print the latest TestFlight build number"
+  lane :tf_status do
+    api_key = maybe_setup_api_key
+
+    args = { app_identifier: APP_IDENTIFIER }
+    args[:api_key] = api_key if api_key
+
+    latest = latest_testflight_build_number(**args)
+    UI.message("Latest TestFlight build number for #{APP_IDENTIFIER}: #{latest}")
+  end
+
+  desc "Upload App Store metadata/screenshots (no binary upload)"
+  lane :upload_metadata do
+    api_key = maybe_setup_api_key
+
+    unless Dir.exist?(File.join("fastlane", "metadata")) || Dir.exist?(File.join("fastlane", "screenshots"))
+      UI.important("No fastlane/metadata or fastlane/screenshots directory found. Nothing to upload yet.")
+      UI.message("Add metadata/screenshots (optional), then re-run this lane.")
+      next
+    end
+
+    deliver_args = {
+      app_identifier: APP_IDENTIFIER,
+      skip_binary_upload: true,
+      force: false
+    }
+    deliver_args[:api_key] = api_key if api_key
+
+    deliver(**deliver_args)
+  end
+
+  desc "Submit the latest processed build for App Store review"
+  lane :release do
+    api_key = maybe_setup_api_key
+
+    deliver_args = {
+      app_identifier: APP_IDENTIFIER,
+      skip_binary_upload: true,
+      submit_for_review: true,
+      force: false
+    }
+    deliver_args[:api_key] = api_key if api_key
+
+    deliver(**deliver_args)
+  end
+
+  desc "Upload metadata/screenshots and submit for review"
+  lane :release_full do
+    upload_metadata
+    release
+  end
+end
