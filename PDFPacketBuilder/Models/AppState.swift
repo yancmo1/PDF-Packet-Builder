@@ -81,14 +81,24 @@ class AppState: ObservableObject {
     func exportLogsAsCSV() -> String {
         var csv = "Recipient Name,Template Name,Output Filename,Sent Date,Method\n"
         for log in sendLogs {
-            let recipientName = log.recipientName.replacingOccurrences(of: ",", with: ";")
-            let templateName = log.templateName.replacingOccurrences(of: ",", with: ";")
-            let outputFileName = log.outputFileName.replacingOccurrences(of: ",", with: ";")
-            let sentDate = log.formattedSentDate
-            let method = log.method.rawValue
+            let recipientName = escapeCSVField(log.recipientName)
+            let templateName = escapeCSVField(log.templateName)
+            let outputFileName = escapeCSVField(log.outputFileName)
+            let sentDate = escapeCSVField(log.formattedSentDate)
+            let method = escapeCSVField(log.method.rawValue)
             csv += "\(recipientName),\(templateName),\(outputFileName),\(sentDate),\(method)\n"
         }
         return csv
+    }
+    
+    private func escapeCSVField(_ field: String) -> String {
+        // Wrap field in quotes if it contains comma, quote, or newline
+        if field.contains(",") || field.contains("\"") || field.contains("\n") || field.contains("\r") {
+            // Escape internal quotes by doubling them
+            let escapedField = field.replacingOccurrences(of: "\"", with: "\"\"")
+            return "\"\(escapedField)\""
+        }
+        return field
     }
     
     func removeTemplate() {
