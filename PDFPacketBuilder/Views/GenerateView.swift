@@ -6,6 +6,14 @@
 import SwiftUI
 import MessageUI
 
+private func clampNSRange(_ range: NSRange, in text: String) -> NSRange {
+    let length = (text as NSString).length
+    let loc = min(max(0, range.location), length)
+    let maxLen = max(0, length - loc)
+    let len = min(max(0, range.length), maxLen)
+    return NSRange(location: loc, length: len)
+}
+
 struct GenerateView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var iapManager: IAPManager
@@ -76,7 +84,7 @@ struct GenerateView: View {
 
             // Apply selection when this field is currently focused.
             guard uiView.isFirstResponder else { return }
-            let clamped = clamp(range: selection, in: text)
+            let clamped = clampNSRange(selection, in: text)
             if let start = uiView.position(from: uiView.beginningOfDocument, offset: clamped.location),
                let end = uiView.position(from: start, offset: clamped.length),
                let range = uiView.textRange(from: start, to: end) {
@@ -142,7 +150,7 @@ struct GenerateView: View {
 
             // Apply selection when this view is currently focused.
             guard uiView.isFirstResponder else { return }
-            let clamped = clamp(range: selection, in: text)
+            let clamped = clampNSRange(selection, in: text)
             if uiView.selectedRange != clamped {
                 uiView.selectedRange = clamped
             }
@@ -174,14 +182,6 @@ struct GenerateView: View {
         }
     }
 
-    private static func clamp(range: NSRange, in text: String) -> NSRange {
-        let length = (text as NSString).length
-        let loc = min(max(0, range.location), length)
-        let maxLen = max(0, length - loc)
-        let len = min(max(0, range.length), maxLen)
-        return NSRange(location: loc, length: len)
-    }
-
     private enum StatusFilter: String, CaseIterable, Identifiable {
         case all = "All"
         case unsent = "Unsent"
@@ -196,7 +196,7 @@ struct GenerateView: View {
 
     private var needsEmailColumnSelectionToSend: Bool {
         guard appState.csvImport != nil else { return false }
-        let selected = appState.csvEmailColumn?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let selected = appState.selectedEmailColumn?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !selected.isEmpty { return false }
 
         return appState.recipients.contains { recipient in
@@ -553,6 +553,7 @@ struct GenerateView: View {
         let allowedTokens = MessageTemplateRenderer.systemTokens.union(csvTokenSet)
 
         let previewRecipient = previewRecipientForTemplate()
+        let previewRecipientEmail = previewRecipient.map { resolvedEmail(for: $0) } ?? ""
         let resolvedValues = previewRecipient.map { resolvedMessageTokenValues(for: $0, messageTemplate: template, csvTokens: csvTokens) } ?? [:]
         let referencedTokens = MessageTemplateRenderer.extractTokens(from: template.subject)
             .union(MessageTemplateRenderer.extractTokens(from: template.body))
@@ -561,7 +562,8 @@ struct GenerateView: View {
             hasCSV: hasCSV,
             headers: headers,
             csvTokenSet: csvTokenSet,
-            messageTemplate: template
+            messageTemplate: template,
+            previewRecipientEmail: previewRecipientEmail
         )
         let renderResult = MessageTemplateRenderer.render(
             template: template,
@@ -827,7 +829,7 @@ struct GenerateView: View {
         switch messageTemplateFocus {
         case .subject:
             updateMessageTemplate { mt in
-                let clamped = Self.clamp(range: messageSubjectSelection, in: mt.subject)
+                let clamped = clampNSRange(messageSubjectSelection, in: mt.subject)
                 let ns = mt.subject as NSString
                 mt.subject = ns.replacingCharacters(in: clamped, with: snippet)
                 messageSubjectSelection = NSRange(location: clamped.location + (snippet as NSString).length, length: 0)
@@ -836,7 +838,7 @@ struct GenerateView: View {
             }
         case .body:
             updateMessageTemplate { mt in
-                let clamped = Self.clamp(range: messageBodySelection, in: mt.body)
+                let clamped = clampNSRange(messageBodySelection, in: mt.body)
                 let ns = mt.body as NSString
                 mt.body = ns.replacingCharacters(in: clamped, with: snippet)
                 messageBodySelection = NSRange(location: clamped.location + (snippet as NSString).length, length: 0)
@@ -845,7 +847,7 @@ struct GenerateView: View {
             }
         default:
             updateMessageTemplate { mt in
-                let clamped = Self.clamp(range: messageBodySelection, in: mt.body)
+                let clamped = clampNSRange(messageBodySelection, in: mt.body)
                 let ns = mt.body as NSString
                 mt.body = ns.replacingCharacters(in: clamped, with: snippet)
                 messageBodySelection = NSRange(location: clamped.location + (snippet as NSString).length, length: 0)
@@ -907,13 +909,35 @@ struct GenerateView: View {
         hasCSV: Bool,
         headers: [String],
         csvTokenSet: Set<String>,
-        messageTemplate: MessageTemplate
+        messageTemplate: MessageTemplate,
+        previewRecipientEmail: String
     ) -> [String] {
         var issues: [String] = []
 
         let referencedCSV = referencedTokens.intersection(csvTokenSet)
         if !referencedCSV.isEmpty, !hasCSV {
             issues.append("Import a CSV to resolve tokens derived from CSV headers.")
+        }
+
+        if referencedTokens.contains("sender_name") {
+            let name = appState.senderName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if name.isEmpty {
+                issues.append("Enter a Sender name in Settings to resolve {{sender_name}}.")
+            }
+        }
+
+        if referencedTokens.contains("sender_email") {
+            let email = appState.senderEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+            if email.isEmpty {
+                issues.append("Enter a Sender email in Settings to resolve {{sender_email}}.")
+            }
+        }
+
+        if referencedTokens.contains("recipient_email") {
+            let email = previewRecipientEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+            if email.isEmpty {
+                issues.append("Preview recipient has no email value for {{recipient_email}}.")
+            }
         }
 
         return issues
@@ -1013,7 +1037,19 @@ struct GenerateView: View {
             // Summary is optional; ignore failures.
         }
 
-        currentExportBundle = ExportBundle(url: rootURL)
+        // Prefer sharing a ZIP for better compatibility across share targets.
+        let zipURL = tempRoot.appendingPathComponent(rootName).appendingPathExtension("zip")
+        do {
+            if fm.fileExists(atPath: zipURL.path) {
+                try fm.removeItem(at: zipURL)
+            }
+
+            // If zip creation fails for any reason, fall back to sharing the folder.
+            try fm.zipItem(at: rootURL, to: zipURL)
+            currentExportBundle = ExportBundle(url: zipURL)
+        } catch {
+            currentExportBundle = ExportBundle(url: rootURL)
+        }
     }
 
     private func csvTokenCatalog(headers: [String]) -> [CSVTokenDescriptor] {
@@ -1221,7 +1257,7 @@ struct GenerateView: View {
     }
 
     private func resolvedEmail(for recipient: Recipient) -> String {
-        if let column = appState.csvEmailColumn?.trimmingCharacters(in: .whitespacesAndNewlines), !column.isEmpty {
+        if let column = appState.selectedEmailColumn?.trimmingCharacters(in: .whitespacesAndNewlines), !column.isEmpty {
             let fromColumn = recipient.value(forKey: column)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             if !fromColumn.isEmpty {
                 return fromColumn
@@ -1233,7 +1269,7 @@ struct GenerateView: View {
 
     private func displayName(for recipient: Recipient) -> String {
         // If we have a chosen/detected display-name column, try it first.
-        if let column = appState.csvDisplayNameColumn?.trimmingCharacters(in: .whitespacesAndNewlines), !column.isEmpty {
+        if let column = appState.selectedDisplayNameColumn?.trimmingCharacters(in: .whitespacesAndNewlines), !column.isEmpty {
             let fromColumn = recipient.value(forKey: column)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             if !fromColumn.isEmpty {
                 return fromColumn

@@ -148,18 +148,18 @@ struct CSVImporterView: View {
                     // Default the email-column picker when possible.
                     let emailDetection = csvService.detectEmailColumn(preview: preview)
                     if let detected = emailDetection.selectedHeader {
-                        appState.saveCSVEmailColumn(detected)
+                        appState.saveSelectedEmailColumn(detected)
                     } else {
-                        appState.saveCSVEmailColumn(nil)
+                        appState.saveSelectedEmailColumn(nil)
                         showingNoEmailDetectedAlert = true
                     }
 
                     // Presentation-only: default a display-name column when possible.
                     let displayNameDetection = csvService.detectDisplayNameColumn(preview: preview)
                     if let detected = displayNameDetection.selectedHeader {
-                        appState.saveCSVDisplayNameColumn(detected)
+                        appState.saveSelectedDisplayNameColumn(detected)
                     } else {
-                        appState.saveCSVDisplayNameColumn(nil)
+                        appState.saveSelectedDisplayNameColumn(nil)
                     }
 
                     self.isProcessing = false
@@ -182,7 +182,7 @@ struct CSVImporterView: View {
 
     private func displayName(for recipient: Recipient) -> String {
         let fromColumn: String = {
-            let column = appState.csvDisplayNameColumn?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let column = appState.selectedDisplayNameColumn?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             if column.isEmpty { return "" }
             return recipient.value(forKey: column)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         }()
@@ -201,7 +201,7 @@ struct CSVImporterView: View {
         let email = recipient.email.trimmingCharacters(in: .whitespacesAndNewlines)
         if !email.isEmpty { return email }
 
-        let column = appState.csvEmailColumn?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let column = appState.selectedEmailColumn?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if column.isEmpty { return "" }
         return recipient.value(forKey: column)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }

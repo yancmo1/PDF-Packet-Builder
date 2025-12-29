@@ -129,6 +129,14 @@ PDF Packet Builder is an iOS application that automates the process of filling P
 - Key: PDF field name, Value: data column name
 - Used during PDF generation to fill correct fields
 
+#### Smart Mapping Heuristics (Future)
+This section is a placeholder for future work to keep mapping logic documented in one place.
+
+- Candidate sources: PDF field name tokens, CSV header tokens, built-in fields, computed fields
+- Constraints: never auto-apply changes that require user intent; only suggest when high confidence
+- Safety rules: never overwrite an existing user mapping; always keep mapping editable
+- Telemetry: none (offline-first)
+
 ### 4. PDF Generation (GenerateView)
 **Purpose:** Generate personalized PDFs for selected recipients
 

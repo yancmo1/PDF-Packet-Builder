@@ -46,10 +46,10 @@ struct MapView: View {
                                 }
 
                                 Picker("Name column", selection: Binding(
-                                    get: { appState.csvDisplayNameColumn ?? "" },
+                                    get: { appState.selectedDisplayNameColumn ?? "" },
                                     set: { newValue in
                                         let value = newValue.isEmpty ? nil : newValue
-                                        appState.saveCSVDisplayNameColumn(value)
+                                        appState.saveSelectedDisplayNameColumn(value)
                                     }
                                 )) {
                                     Text("Use Recipient Name").tag("")
@@ -64,10 +64,10 @@ struct MapView: View {
                                 .pickerStyle(.menu)
 
                                 Picker("Email column", selection: Binding(
-                                    get: { appState.csvEmailColumn ?? "" },
+                                    get: { appState.selectedEmailColumn ?? "" },
                                     set: { newValue in
                                         let value = newValue.isEmpty ? nil : newValue
-                                        appState.saveCSVEmailColumn(value)
+                                        appState.saveSelectedEmailColumn(value)
                                     }
                                 )) {
                                     Text("Use Recipient Email").tag("")
@@ -92,10 +92,10 @@ struct MapView: View {
                                 }
 
                                 Picker("Name column", selection: Binding(
-                                    get: { appState.csvDisplayNameColumn ?? "" },
+                                    get: { appState.selectedDisplayNameColumn ?? "" },
                                     set: { newValue in
                                         let value = newValue.isEmpty ? nil : newValue
-                                        appState.saveCSVDisplayNameColumn(value)
+                                        appState.saveSelectedDisplayNameColumn(value)
                                     }
                                 )) {
                                     Text("Use Recipient Name").tag("")
@@ -104,10 +104,10 @@ struct MapView: View {
                                 .disabled(true)
 
                                 Picker("Email column", selection: Binding(
-                                    get: { appState.csvEmailColumn ?? "" },
+                                    get: { appState.selectedEmailColumn ?? "" },
                                     set: { newValue in
                                         let value = newValue.isEmpty ? nil : newValue
-                                        appState.saveCSVEmailColumn(value)
+                                        appState.saveSelectedEmailColumn(value)
                                     }
                                 )) {
                                     Text("Use Recipient Email").tag("")

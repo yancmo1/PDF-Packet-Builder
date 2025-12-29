@@ -18,8 +18,10 @@ class StorageService {
     private let proStatusKey = "isProUnlocked"
     private let legacyProStatusKey = "isPro"
     private let csvImportKey = "csvImport"
-    private let csvEmailColumnKey = "csvEmailColumn"
-    private let csvDisplayNameColumnKey = "csvDisplayNameColumn"
+    private let selectedEmailColumnKey = "selectedEmailColumn"
+    private let selectedDisplayNameColumnKey = "selectedDisplayNameColumn"
+    private let legacyCSVEmailColumnKey = "csvEmailColumn"
+    private let legacyCSVDisplayNameColumnKey = "csvDisplayNameColumn"
     private let senderNameKey = "senderName"
     private let senderEmailKey = "senderEmail"
     
@@ -97,35 +99,83 @@ class StorageService {
         defaults.removeObject(forKey: csvImportKey)
     }
 
-    func saveCSVEmailColumn(_ column: String?) {
+    func saveSelectedEmailColumn(_ column: String?) {
         let trimmed = column?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let trimmed, !trimmed.isEmpty {
-            defaults.set(trimmed, forKey: csvEmailColumnKey)
+            defaults.set(trimmed, forKey: selectedEmailColumnKey)
+            defaults.removeObject(forKey: legacyCSVEmailColumnKey)
         } else {
-            defaults.removeObject(forKey: csvEmailColumnKey)
+            defaults.removeObject(forKey: selectedEmailColumnKey)
+            defaults.removeObject(forKey: legacyCSVEmailColumnKey)
         }
     }
 
-    func loadCSVEmailColumn() -> String? {
-        let value = defaults.string(forKey: csvEmailColumnKey)
-        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let trimmed, !trimmed.isEmpty {
-            return trimmed
+    func loadSelectedEmailColumn() -> String? {
+        let current = normalizedNonEmpty(defaults.string(forKey: selectedEmailColumnKey))
+        if let current {
+            return current
         }
+
+        let legacy = normalizedNonEmpty(defaults.string(forKey: legacyCSVEmailColumnKey))
+        if let legacy {
+            // Migrate forward.
+            defaults.set(legacy, forKey: selectedEmailColumnKey)
+            defaults.removeObject(forKey: legacyCSVEmailColumnKey)
+            return legacy
+        }
+
         return nil
     }
 
-    func saveCSVDisplayNameColumn(_ column: String?) {
+    func saveSelectedDisplayNameColumn(_ column: String?) {
         let trimmed = column?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let trimmed, !trimmed.isEmpty {
-            defaults.set(trimmed, forKey: csvDisplayNameColumnKey)
+            defaults.set(trimmed, forKey: selectedDisplayNameColumnKey)
+            defaults.removeObject(forKey: legacyCSVDisplayNameColumnKey)
         } else {
-            defaults.removeObject(forKey: csvDisplayNameColumnKey)
+            defaults.removeObject(forKey: selectedDisplayNameColumnKey)
+            defaults.removeObject(forKey: legacyCSVDisplayNameColumnKey)
         }
     }
 
+    func loadSelectedDisplayNameColumn() -> String? {
+        let current = normalizedNonEmpty(defaults.string(forKey: selectedDisplayNameColumnKey))
+        if let current {
+            return current
+        }
+
+        let legacy = normalizedNonEmpty(defaults.string(forKey: legacyCSVDisplayNameColumnKey))
+        if let legacy {
+            // Migrate forward.
+            defaults.set(legacy, forKey: selectedDisplayNameColumnKey)
+            defaults.removeObject(forKey: legacyCSVDisplayNameColumnKey)
+            return legacy
+        }
+
+        return nil
+    }
+
+    @available(*, deprecated, message: "Use saveSelectedEmailColumn")
+    func saveCSVEmailColumn(_ column: String?) {
+        saveSelectedEmailColumn(column)
+    }
+
+    @available(*, deprecated, message: "Use loadSelectedEmailColumn")
+    func loadCSVEmailColumn() -> String? {
+        loadSelectedEmailColumn()
+    }
+
+    @available(*, deprecated, message: "Use saveSelectedDisplayNameColumn")
+    func saveCSVDisplayNameColumn(_ column: String?) {
+        saveSelectedDisplayNameColumn(column)
+    }
+
+    @available(*, deprecated, message: "Use loadSelectedDisplayNameColumn")
     func loadCSVDisplayNameColumn() -> String? {
-        let value = defaults.string(forKey: csvDisplayNameColumnKey)
+        loadSelectedDisplayNameColumn()
+    }
+
+    private func normalizedNonEmpty(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let trimmed, !trimmed.isEmpty {
             return trimmed

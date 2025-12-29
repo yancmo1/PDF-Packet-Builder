@@ -31,7 +31,8 @@ struct MessageTemplateRenderer {
         // {{token_name}} with optional whitespace inside braces.
         // Tokens are lower_snake_case in v1.
         let pattern = #"\{\{\s*([a-z0-9_]+)\s*\}\}"#
-        return (try? NSRegularExpression(pattern: pattern, options: [])) ?? NSRegularExpression()
+        // This is a static literal pattern; failure indicates a programmer error.
+        return try! NSRegularExpression(pattern: pattern, options: [])
     }()
 
     static func extractTokens(from text: String) -> Set<String> {

@@ -12,8 +12,8 @@ class AppState: ObservableObject {
     @Published var sendLogs: [SendLog] = []
     @Published var isProUnlocked: Bool = false
     @Published var csvImport: CSVImportSnapshot? = nil
-    @Published var csvEmailColumn: String? = nil
-    @Published var csvDisplayNameColumn: String? = nil
+    @Published var selectedEmailColumn: String? = nil
+    @Published var selectedDisplayNameColumn: String? = nil
     @Published var senderName: String = ""
     @Published var senderEmail: String = ""
     
@@ -34,8 +34,8 @@ class AppState: ObservableObject {
         self.sendLogs = storageService.loadLogs()
         self.isProUnlocked = storageService.loadProStatus()
         self.csvImport = storageService.loadCSVImport()
-        self.csvEmailColumn = storageService.loadCSVEmailColumn()
-        self.csvDisplayNameColumn = storageService.loadCSVDisplayNameColumn()
+        self.selectedEmailColumn = storageService.loadSelectedEmailColumn()
+        self.selectedDisplayNameColumn = storageService.loadSelectedDisplayNameColumn()
         self.senderName = storageService.loadSenderName()
         self.senderEmail = storageService.loadSenderEmail()
     }
@@ -68,26 +68,36 @@ class AppState: ObservableObject {
         storageService.clearCSVImport()
     }
 
-    func saveCSVEmailColumn(_ column: String?) {
+    func saveSelectedEmailColumn(_ column: String?) {
         let trimmed = column?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let trimmed, trimmed.isEmpty {
-            csvEmailColumn = nil
-            storageService.saveCSVEmailColumn(nil)
+            selectedEmailColumn = nil
+            storageService.saveSelectedEmailColumn(nil)
         } else {
-            csvEmailColumn = trimmed
-            storageService.saveCSVEmailColumn(trimmed)
+            selectedEmailColumn = trimmed
+            storageService.saveSelectedEmailColumn(trimmed)
         }
     }
 
-    func saveCSVDisplayNameColumn(_ column: String?) {
+    func saveSelectedDisplayNameColumn(_ column: String?) {
         let trimmed = column?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let trimmed, trimmed.isEmpty {
-            csvDisplayNameColumn = nil
-            storageService.saveCSVDisplayNameColumn(nil)
+            selectedDisplayNameColumn = nil
+            storageService.saveSelectedDisplayNameColumn(nil)
         } else {
-            csvDisplayNameColumn = trimmed
-            storageService.saveCSVDisplayNameColumn(trimmed)
+            selectedDisplayNameColumn = trimmed
+            storageService.saveSelectedDisplayNameColumn(trimmed)
         }
+    }
+
+    @available(*, deprecated, message: "Use saveSelectedEmailColumn")
+    func saveCSVEmailColumn(_ column: String?) {
+        saveSelectedEmailColumn(column)
+    }
+
+    @available(*, deprecated, message: "Use saveSelectedDisplayNameColumn")
+    func saveCSVDisplayNameColumn(_ column: String?) {
+        saveSelectedDisplayNameColumn(column)
     }
 
     func saveSenderName(_ name: String) {
@@ -173,13 +183,12 @@ class AppState: ObservableObject {
         self.csvImport = nil
         storageService.clearCSVImport()
 
-        // Clear CSV email column preference
-        self.csvEmailColumn = nil
-        storageService.saveCSVEmailColumn(nil)
+        // Clear email/name column preferences
+        self.selectedEmailColumn = nil
+        storageService.saveSelectedEmailColumn(nil)
 
-        // Clear CSV display name column preference
-        self.csvDisplayNameColumn = nil
-        storageService.saveCSVDisplayNameColumn(nil)
+        self.selectedDisplayNameColumn = nil
+        storageService.saveSelectedDisplayNameColumn(nil)
         
         // Clear logs
         self.sendLogs = []

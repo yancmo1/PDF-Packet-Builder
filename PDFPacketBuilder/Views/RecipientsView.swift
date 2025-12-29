@@ -198,7 +198,7 @@ struct RecipientRow: View {
     }
 
     private func resolvedEmail(for recipient: Recipient) -> String {
-        if let column = appState.csvEmailColumn?.trimmingCharacters(in: .whitespacesAndNewlines), !column.isEmpty {
+        if let column = appState.selectedEmailColumn?.trimmingCharacters(in: .whitespacesAndNewlines), !column.isEmpty {
             let fromColumn = recipient.value(forKey: column)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             if !fromColumn.isEmpty {
                 return fromColumn
@@ -209,7 +209,7 @@ struct RecipientRow: View {
     }
 
     private func displayName(for recipient: Recipient) -> String {
-        if let column = appState.csvDisplayNameColumn?.trimmingCharacters(in: .whitespacesAndNewlines), !column.isEmpty {
+        if let column = appState.selectedDisplayNameColumn?.trimmingCharacters(in: .whitespacesAndNewlines), !column.isEmpty {
             let fromColumn = recipient.value(forKey: column)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             if !fromColumn.isEmpty {
                 return fromColumn

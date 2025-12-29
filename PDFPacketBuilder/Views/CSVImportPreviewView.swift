@@ -185,18 +185,18 @@ struct CSVImportPreviewView: View {
                     // Auto-select a CSV email column if we can detect exactly one.
                     let emailDetection = csvService.detectEmailColumn(preview: preview)
                     if let detected = emailDetection.selectedHeader {
-                        appState.saveCSVEmailColumn(detected)
+                        appState.saveSelectedEmailColumn(detected)
                     } else {
-                        appState.saveCSVEmailColumn(nil)
+                        appState.saveSelectedEmailColumn(nil)
                         showingNoEmailDetectedAlert = true
                     }
 
                     // Presentation-only: default a display-name column when possible.
                     let displayNameDetection = csvService.detectDisplayNameColumn(preview: preview)
                     if let detected = displayNameDetection.selectedHeader {
-                        appState.saveCSVDisplayNameColumn(detected)
+                        appState.saveSelectedDisplayNameColumn(detected)
                     } else {
-                        appState.saveCSVDisplayNameColumn(nil)
+                        appState.saveSelectedDisplayNameColumn(nil)
                     }
 
                     fileName = reference.originalFileName
