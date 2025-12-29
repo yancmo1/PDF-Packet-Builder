@@ -20,6 +20,8 @@ class StorageService {
     private let csvImportKey = "csvImport"
     private let csvEmailColumnKey = "csvEmailColumn"
     private let csvDisplayNameColumnKey = "csvDisplayNameColumn"
+    private let senderNameKey = "senderName"
+    private let senderEmailKey = "senderEmail"
     
     // MARK: - Template Storage
     
@@ -129,6 +131,36 @@ class StorageService {
             return trimmed
         }
         return nil
+    }
+
+    // MARK: - Sender Settings
+
+    func saveSenderName(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            defaults.removeObject(forKey: senderNameKey)
+        } else {
+            defaults.set(trimmed, forKey: senderNameKey)
+        }
+    }
+
+    func loadSenderName() -> String {
+        let value = defaults.string(forKey: senderNameKey) ?? ""
+        return value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func saveSenderEmail(_ email: String) {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            defaults.removeObject(forKey: senderEmailKey)
+        } else {
+            defaults.set(trimmed, forKey: senderEmailKey)
+        }
+    }
+
+    func loadSenderEmail() -> String {
+        let value = defaults.string(forKey: senderEmailKey) ?? ""
+        return value.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     // MARK: - Document Directory Access

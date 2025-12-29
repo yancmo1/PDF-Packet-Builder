@@ -14,6 +14,8 @@ class AppState: ObservableObject {
     @Published var csvImport: CSVImportSnapshot? = nil
     @Published var csvEmailColumn: String? = nil
     @Published var csvDisplayNameColumn: String? = nil
+    @Published var senderName: String = ""
+    @Published var senderEmail: String = ""
     
     private let storageService = StorageService()
     
@@ -34,6 +36,8 @@ class AppState: ObservableObject {
         self.csvImport = storageService.loadCSVImport()
         self.csvEmailColumn = storageService.loadCSVEmailColumn()
         self.csvDisplayNameColumn = storageService.loadCSVDisplayNameColumn()
+        self.senderName = storageService.loadSenderName()
+        self.senderEmail = storageService.loadSenderEmail()
     }
     
     func canAddTemplate() -> Bool {
@@ -84,6 +88,18 @@ class AppState: ObservableObject {
             csvDisplayNameColumn = trimmed
             storageService.saveCSVDisplayNameColumn(trimmed)
         }
+    }
+
+    func saveSenderName(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        senderName = trimmed
+        storageService.saveSenderName(trimmed)
+    }
+
+    func saveSenderEmail(_ email: String) {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        senderEmail = trimmed
+        storageService.saveSenderEmail(trimmed)
     }
     
     func addSendLog(_ log: SendLog) {

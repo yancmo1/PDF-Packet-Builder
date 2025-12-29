@@ -1,6 +1,6 @@
 # PDF Packet Builder - Living Project Documentation
 
-**Last Updated:** 2025-12-28  
+**Last Updated:** 2025-12-29  
 **Version:** 1.0  
 **Bundle ID:** `com.yancmo.pdfpacketbuilder`  
 **Team ID:** `9PHS626XUN`
@@ -139,6 +139,13 @@ PDF Packet Builder is an iOS application that automates the process of filling P
 - Provides per-recipient actions:
    - Share (iOS share sheet)
    - Mail (in-app mail composer)
+- Optional Message Template:
+   - User-authored Subject + Body (plain text)
+   - Merge tokens:
+     - System tokens (e.g., `{{recipient_name}}`, `{{date}}`, `{{sender_name}}`)
+     - CSV tokens are generated from CSV headers (normalized to lower_snake_case)
+   - Preview rendered subject/body for a chosen recipient
+   - Batch Export Folder writes per-recipient `Packet.pdf` + `Message.txt` (+ `Summary.csv`)
 - Logs sends only after confirmed delivery actions (share completed, mail sent)
 
 **Generation Process:**
@@ -727,6 +734,13 @@ Pre-configured tasks in `.vscode/tasks.json`:
 - [ ] Sent X / Y progress updates after logging
 - [ ] Share sheet displays
 - [ ] Can save/share generated PDFs
+- [ ] Settings: Sender name/email can be entered and persists across relaunch
+- [ ] Message Template: subject/body can be entered and persists across relaunch
+- [ ] Message Template: preview shows per-recipient rendering with merge tokens
+- [ ] Message Template: unknown tokens are warned (and preserved in output)
+- [ ] Export Folder: creates one subfolder per recipient with `Packet.pdf`
+- [ ] Export Folder: when template enabled, writes `Message.txt` per recipient
+- [ ] Export Folder: writes `Summary.csv` at export root (best-effort)
 - [ ] Share 1 PDF → complete → log appears
 - [ ] Share 1 PDF → cancel → no log
 - [ ] Mail 1 PDF → send → log appears

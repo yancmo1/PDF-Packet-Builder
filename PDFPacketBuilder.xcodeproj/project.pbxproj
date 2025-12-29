@@ -14,6 +14,10 @@
 		46EE1C5ED3E34943AAE3C8D6 /* TemplateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A467159E23014AF791C235BA /* TemplateView.swift */; };
 		554E2E1412EA4CF19E6AC9D1 /* Recipient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ACADE9D507B4EA9B24CAFC9 /* Recipient.swift */; };
 		5DEE8681E1204BCB8A76D073 /* PDFTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D87B8696134640B767EED4 /* PDFTemplate.swift */; };
+		C0FFEE0C0FFEE0C0FFEE0C02 /* MessageTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE0C0FFEE0C0FFEE0C01 /* MessageTemplate.swift */; };
+		C0FFEE0C0FFEE0C0FFEE0C04 /* MessageTemplateRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE0C0FFEE0C0FFEE0C03 /* MessageTemplateRenderer.swift */; };
+		C0FFEE0C0FFEE0C0FFEE0C12 /* HowToUseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE0C0FFEE0C0FFEE0C11 /* HowToUseView.swift */; };
+		C0FFEE0C0FFEE0C0FFEE0C14 /* QuickStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE0C0FFEE0C0FFEE0C13 /* QuickStartView.swift */; };
 		60A8BA1AF9AF40F19620645F /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9F9ADA768E1420F8C6582EC /* AppState.swift */; };
 		66FBC06A51784DD28FBF9F4F /* DocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C51E955181164807B5629060 /* DocumentPicker.swift */; };
 		6761DB695CBA4AC5B88279FD /* CSVImporterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 433575B885F14E1DAD777496 /* CSVImporterView.swift */; };
@@ -42,6 +46,10 @@
 
 /* Begin PBXFileReference section */
 		00D87B8696134640B767EED4 /* PDFTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFTemplate.swift; sourceTree = "<group>"; };
+		C0FFEE0C0FFEE0C0FFEE0C01 /* MessageTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageTemplate.swift; sourceTree = "<group>"; };
+		C0FFEE0C0FFEE0C0FFEE0C03 /* MessageTemplateRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageTemplateRenderer.swift; sourceTree = "<group>"; };
+		C0FFEE0C0FFEE0C0FFEE0C11 /* HowToUseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HowToUseView.swift; sourceTree = "<group>"; };
+		C0FFEE0C0FFEE0C0FFEE0C13 /* QuickStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickStartView.swift; sourceTree = "<group>"; };
 		078690AC6BA44032B6B7259B /* PDFService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFService.swift; sourceTree = "<group>"; };
 		109B03007A5A493ABA92DB74 /* SendLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLog.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F7A8B9C0D1E2F /* MailComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailComposer.swift; sourceTree = "<group>"; };
@@ -101,6 +109,8 @@
 				22534FB84A4D42A2B8598F83 /* GenerateView.swift */,
 				8E298F13E7504F47A4E0F2E4 /* LogsView.swift */,
 				8C5363D938E745A0A7631D30 /* SettingsView.swift */,
+				C0FFEE0C0FFEE0C0FFEE0C13 /* QuickStartView.swift */,
+				C0FFEE0C0FFEE0C0FFEE0C11 /* HowToUseView.swift */,
 				49E8FD54FEAF48F081D8AC4B /* PurchaseView.swift */,
 				8AD658FA7C1D49A8BD281151 /* ContactsPickerView.swift */,
 				433575B885F14E1DAD777496 /* CSVImporterView.swift */,
@@ -114,6 +124,7 @@
 			children = (
 				F9F9ADA768E1420F8C6582EC /* AppState.swift */,
 				00D87B8696134640B767EED4 /* PDFTemplate.swift */,
+				C0FFEE0C0FFEE0C0FFEE0C01 /* MessageTemplate.swift */,
 				5ACADE9D507B4EA9B24CAFC9 /* Recipient.swift */,
 				109B03007A5A493ABA92DB74 /* SendLog.swift */,
 				8B9D1C2E4D6F4A1BB8C2D3E4 /* CSVImportSnapshot.swift */,
@@ -129,6 +140,7 @@
 				1A2B3C4D5E6F7A8B9C0D1E2F /* MailComposer.swift */,
 				A11C0A9D1E7E4A33B8F6A2D1 /* AutoMapping.swift */,
 				A11C0A9F1E7E4A33B8F6A2D1 /* NameNormalization.swift */,
+				C0FFEE0C0FFEE0C0FFEE0C03 /* MessageTemplateRenderer.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -264,6 +276,7 @@
 				690B7BF56FE4459A9C633D1B /* PDFPacketBuilderApp.swift in Sources */,
 				60A8BA1AF9AF40F19620645F /* AppState.swift in Sources */,
 				5DEE8681E1204BCB8A76D073 /* PDFTemplate.swift in Sources */,
+				C0FFEE0C0FFEE0C0FFEE0C02 /* MessageTemplate.swift in Sources */,
 				554E2E1412EA4CF19E6AC9D1 /* Recipient.swift in Sources */,
 				BDDB00F92D49418F9C8E1B1E /* SendLog.swift in Sources */,
 				0C2B1C9E8C6E4C9BB2D7C9B2 /* CSVImportSnapshot.swift in Sources */,
@@ -277,6 +290,8 @@
 				F61326E76F954C2D95FFE65F /* GenerateView.swift in Sources */,
 				78529E928E674B83BBA74574 /* LogsView.swift in Sources */,
 				7C0ECE93E38446ADBE728224 /* SettingsView.swift in Sources */,
+				C0FFEE0C0FFEE0C0FFEE0C14 /* QuickStartView.swift in Sources */,
+				C0FFEE0C0FFEE0C0FFEE0C12 /* HowToUseView.swift in Sources */,
 				B94F18C9D41E4BF1ACC2E5EC /* PurchaseView.swift in Sources */,
 				0754A4F3237D47B2A7DEEB3F /* ContactsPickerView.swift in Sources */,
 				6761DB695CBA4AC5B88279FD /* CSVImporterView.swift in Sources */,
@@ -290,6 +305,7 @@
 				9A1B2C3D4E5F6A7B8C9D0E1F /* MailComposer.swift in Sources */,
 				A11C0A9E1E7E4A33B8F6A2D1 /* AutoMapping.swift in Sources */,
 				A11C0AA01E7E4A33B8F6A2D1 /* NameNormalization.swift in Sources */,
+				C0FFEE0C0FFEE0C0FFEE0C04 /* MessageTemplateRenderer.swift in Sources */,
 				BC6CD96707994989AE9DC9E1 /* IAPManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

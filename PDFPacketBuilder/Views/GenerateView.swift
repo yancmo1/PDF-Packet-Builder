@@ -14,6 +14,7 @@ struct GenerateView: View {
     @State private var showingShareSheet = false
     @State private var currentShareItem: ShareItem?
     @State private var currentMailItem: MailItem?
+    @State private var currentExportBundle: ExportBundle?
     @State private var showingPaywall = false
     @State private var showingMailUnavailableAlert = false
     @State private var showingMailFailedAlert = false
@@ -22,13 +23,164 @@ struct GenerateView: View {
     @State private var showingNoRecipientsSelectedAlert = false
     @State private var showingShareErrorAlert = false
     @State private var showingNoEmailForRowAlert = false
+    @State private var showingExportErrorAlert = false
+    @State private var exportErrorMessage: String = ""
 
     @State private var statusFilter: StatusFilter = .all
 
     @State private var selectedRecipientIDs: Set<UUID> = []
     @State private var isRecipientListExpanded = true
+
+    @State private var isMessageTemplateExpanded = false
+    @State private var previewRecipientID: UUID? = nil
+
+    @State private var messageTemplateFocus: MessageTemplateFocus? = nil
+    @State private var messageSubjectSelection: NSRange = NSRange(location: 0, length: 0)
+    @State private var messageBodySelection: NSRange = NSRange(location: 0, length: 0)
+
+    @State private var messageBodyEditorHeight: CGFloat = 220
     
     private let pdfService = PDFService()
+
+    private struct CSVTokenDescriptor: Hashable {
+        var token: String
+        var header: String
+    }
+
+    private enum MessageTemplateFocus: Hashable {
+        case subject
+        case body
+    }
+
+    private struct CursorAwareTextField: UIViewRepresentable {
+        @Binding var text: String
+        @Binding var selection: NSRange
+        var placeholder: String
+        var onBeginEditing: (() -> Void)?
+
+        func makeUIView(context: Context) -> UITextField {
+            let field = UITextField(frame: .zero)
+            field.borderStyle = .roundedRect
+            field.placeholder = placeholder
+            field.autocapitalizationType = .sentences
+            field.autocorrectionType = .default
+            field.addTarget(context.coordinator, action: #selector(Coordinator.textDidChange), for: .editingChanged)
+            field.delegate = context.coordinator
+            return field
+        }
+
+        func updateUIView(_ uiView: UITextField, context: Context) {
+            if uiView.text != text {
+                uiView.text = text
+            }
+
+            // Apply selection when this field is currently focused.
+            guard uiView.isFirstResponder else { return }
+            let clamped = clamp(range: selection, in: text)
+            if let start = uiView.position(from: uiView.beginningOfDocument, offset: clamped.location),
+               let end = uiView.position(from: start, offset: clamped.length),
+               let range = uiView.textRange(from: start, to: end) {
+                uiView.selectedTextRange = range
+            }
+        }
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(self)
+        }
+
+        final class Coordinator: NSObject, UITextFieldDelegate {
+            private let parent: CursorAwareTextField
+
+            init(_ parent: CursorAwareTextField) {
+                self.parent = parent
+            }
+
+            func textFieldDidBeginEditing(_ textField: UITextField) {
+                parent.onBeginEditing?()
+                updateSelection(from: textField)
+            }
+
+            func textFieldDidChangeSelection(_ textField: UITextField) {
+                updateSelection(from: textField)
+            }
+
+            @objc func textDidChange(_ textField: UITextField) {
+                parent.text = textField.text ?? ""
+                updateSelection(from: textField)
+            }
+
+            private func updateSelection(from textField: UITextField) {
+                guard let range = textField.selectedTextRange else { return }
+                let start = textField.offset(from: textField.beginningOfDocument, to: range.start)
+                let end = textField.offset(from: textField.beginningOfDocument, to: range.end)
+                parent.selection = NSRange(location: max(0, start), length: max(0, end - start))
+            }
+        }
+    }
+
+    private struct CursorAwareTextView: UIViewRepresentable {
+        @Binding var text: String
+        @Binding var selection: NSRange
+        var onBeginEditing: (() -> Void)?
+
+        func makeUIView(context: Context) -> UITextView {
+            let view = UITextView(frame: .zero)
+            view.isScrollEnabled = true
+            view.backgroundColor = .systemBackground
+            view.font = UIFont.preferredFont(forTextStyle: .body)
+            view.delegate = context.coordinator
+            view.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4)
+            view.layer.cornerRadius = 8
+            view.layer.masksToBounds = true
+            return view
+        }
+
+        func updateUIView(_ uiView: UITextView, context: Context) {
+            if uiView.text != text {
+                uiView.text = text
+            }
+
+            // Apply selection when this view is currently focused.
+            guard uiView.isFirstResponder else { return }
+            let clamped = clamp(range: selection, in: text)
+            if uiView.selectedRange != clamped {
+                uiView.selectedRange = clamped
+            }
+        }
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(self)
+        }
+
+        final class Coordinator: NSObject, UITextViewDelegate {
+            private let parent: CursorAwareTextView
+
+            init(_ parent: CursorAwareTextView) {
+                self.parent = parent
+            }
+
+            func textViewDidBeginEditing(_ textView: UITextView) {
+                parent.onBeginEditing?()
+                parent.selection = textView.selectedRange
+            }
+
+            func textViewDidChange(_ textView: UITextView) {
+                parent.text = textView.text
+            }
+
+            func textViewDidChangeSelection(_ textView: UITextView) {
+                parent.selection = textView.selectedRange
+            }
+        }
+    }
+
+    private static func clamp(range: NSRange, in text: String) -> NSRange {
+        let length = (text as NSString).length
+        let loc = min(max(0, range.location), length)
+        let maxLen = max(0, length - loc)
+        let len = min(max(0, range.length), maxLen)
+        return NSRange(location: loc, length: len)
+    }
 
     private enum StatusFilter: String, CaseIterable, Identifiable {
         case all = "All"
@@ -167,6 +319,8 @@ struct GenerateView: View {
                             .padding()
                             .background(Color(.systemGray6))
                             .cornerRadius(10)
+
+                            messageTemplateSection()
                             
                             Button(action: attemptGenerate) {
                                 Label("Generate PDFs", systemImage: "doc.on.doc")
@@ -255,6 +409,23 @@ struct GenerateView: View {
                                         .background(Color(.systemGray6))
                                         .cornerRadius(8)
                                     }
+
+                                    Button(action: exportGeneratedBundle) {
+                                        Label("Export Folder", systemImage: "folder")
+                                            .frame(maxWidth: .infinity)
+                                            .padding()
+                                            .background(Color(.systemGray5))
+                                            .foregroundColor(.primary)
+                                            .cornerRadius(10)
+                                    }
+                                    .disabled(isGenerating || generatedPDFs.isEmpty)
+
+                                    if currentMessageTemplate().isEnabled && currentMessageTemplate().hasAnyContent {
+                                        Text("Export includes one Message.txt per recipient.")
+                                            .font(.footnote)
+                                            .foregroundColor(.secondary)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
                                 }
                             }
                         }
@@ -305,9 +476,13 @@ struct GenerateView: View {
                     }
                 }
             }
+            .sheet(item: $currentExportBundle) { bundle in
+                ShareSheet(items: [bundle.url])
+            }
             .sheet(item: $currentMailItem) { mailItem in
                 MailComposer(
-                    subject: "\(mailItem.templateName) PDF",
+                    subject: mailItem.subject,
+                    body: mailItem.body,
                     recipient: mailItem.recipientEmail,
                     pdfData: mailItem.pdfData,
                     fileName: mailItem.fileName
@@ -360,7 +535,525 @@ struct GenerateView: View {
             } message: {
                 Text("We could not prepare the PDF for sharing. Please try again.")
             }
+            .alert("Export failed", isPresented: $showingExportErrorAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(exportErrorMessage)
+            }
         }
+    }
+
+    private func messageTemplateSection() -> some View {
+        let template = currentMessageTemplate()
+        let hasCSV = appState.csvImport != nil
+        let headers = appState.csvImport?.headers ?? []
+
+        let csvTokens = csvTokenCatalog(headers: headers)
+        let csvTokenSet = Set(csvTokens.map { $0.token })
+        let allowedTokens = MessageTemplateRenderer.systemTokens.union(csvTokenSet)
+
+        let previewRecipient = previewRecipientForTemplate()
+        let resolvedValues = previewRecipient.map { resolvedMessageTokenValues(for: $0, messageTemplate: template, csvTokens: csvTokens) } ?? [:]
+        let referencedTokens = MessageTemplateRenderer.extractTokens(from: template.subject)
+            .union(MessageTemplateRenderer.extractTokens(from: template.body))
+        let requiredIssues = requiredMessageTemplateIssues(
+            referencedTokens: referencedTokens,
+            hasCSV: hasCSV,
+            headers: headers,
+            csvTokenSet: csvTokenSet,
+            messageTemplate: template
+        )
+        let renderResult = MessageTemplateRenderer.render(
+            template: template,
+            allowedTokens: allowedTokens,
+            resolvedValues: resolvedValues,
+            requiredFieldIssues: requiredIssues
+        )
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Message Template")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    isMessageTemplateExpanded.toggle()
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(isMessageTemplateExpanded ? "Hide" : "Show")
+                        Image(systemName: isMessageTemplateExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                    }
+                }
+                .font(.subheadline)
+            }
+
+            if isMessageTemplateExpanded {
+                Toggle(
+                    "Enable message template",
+                    isOn: Binding(
+                        get: { currentMessageTemplate().isEnabled },
+                        set: { newValue in
+                            updateMessageTemplate { mt in
+                                mt.isEnabled = newValue
+                                mt.lastEdited = Date()
+                            }
+                        }
+                    )
+                )
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Subject")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    CursorAwareTextField(
+                        text: Binding(
+                            get: { currentMessageTemplate().subject },
+                            set: { newValue in
+                                updateMessageTemplate { mt in
+                                    mt.subject = newValue
+                                    mt.lastEdited = Date()
+                                    syncTemplateEnabledState(&mt)
+                                }
+                            }
+                        ),
+                        selection: $messageSubjectSelection,
+                        placeholder: "Subject",
+                        onBeginEditing: {
+                            messageTemplateFocus = .subject
+                        }
+                    )
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Body")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    ZStack(alignment: .bottomTrailing) {
+                        CursorAwareTextView(
+                            text: Binding(
+                                get: { currentMessageTemplate().body },
+                                set: { newValue in
+                                    updateMessageTemplate { mt in
+                                        mt.body = newValue
+                                        mt.lastEdited = Date()
+                                        syncTemplateEnabledState(&mt)
+                                    }
+                                }
+                            ),
+                            selection: $messageBodySelection,
+                            onBeginEditing: {
+                                messageTemplateFocus = .body
+                            }
+                        )
+                        .frame(height: max(120, messageBodyEditorHeight))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(.systemGray4), lineWidth: 1)
+                        )
+
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .padding(10)
+                            .background(Color(.systemGray6).opacity(0.9))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .padding(8)
+                            .contentShape(Rectangle())
+                            .accessibilityLabel("Resize message body")
+                            .gesture(
+                                DragGesture(minimumDistance: 2)
+                                    .onChanged { value in
+                                        let proposed = messageBodyEditorHeight + value.translation.height
+                                        messageBodyEditorHeight = min(max(120, proposed), 600)
+                                    }
+                            )
+                    }
+                }
+
+                HStack {
+                    Menu {
+                        if hasCSV {
+                            let sortedCSV = csvTokens.sorted { lhs, rhs in
+                                if lhs.token == rhs.token { return lhs.header < rhs.header }
+                                return lhs.token < rhs.token
+                            }
+                            ForEach(sortedCSV, id: \.self) { item in
+                                Button("{{\(item.token)}} (\(item.header))") {
+                                    insertToken(item.token)
+                                }
+                            }
+
+                            if !sortedCSV.isEmpty {
+                                Divider()
+                            }
+                        }
+
+                        ForEach(Array(MessageTemplateRenderer.systemTokens).sorted(), id: \.self) { token in
+                            Button("{{\(token)}}") {
+                                insertToken(token)
+                            }
+                        }
+                    } label: {
+                        Label("Insert Token", systemImage: "curlybraces")
+                    }
+
+                    Spacer()
+
+                    Button("Use Starter") {
+                        updateMessageTemplate { mt in
+                            mt = .starterEnabled
+                        }
+                    }
+
+                    Button("Clear") {
+                        updateMessageTemplate { mt in
+                            mt = .emptyDisabled
+                        }
+                    }
+                }
+                .font(.subheadline)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("Preview")
+                            .font(.subheadline)
+                        Spacer()
+
+                        Menu {
+                            Button("Use first selected") { previewRecipientID = nil }
+                            Divider()
+
+                            ForEach(selectedRecipients, id: \.id) { recipient in
+                                Button(displayName(for: recipient)) {
+                                    previewRecipientID = recipient.id
+                                }
+                            }
+                        } label: {
+                            let label = previewRecipient.map { displayName(for: $0) } ?? "(none)"
+                            Label(label, systemImage: "eye")
+                                .lineLimit(1)
+                        }
+                        .disabled(selectedRecipients.isEmpty)
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Subject: \(renderResult.subject)")
+                            .font(.callout)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Text(renderResult.body)
+                            .font(.callout)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding()
+                    .background(Color(.systemGray5))
+                    .cornerRadius(10)
+
+                    if !renderResult.validation.requiredFieldIssues.isEmpty {
+                        warningBlock(title: "Missing mappings", lines: renderResult.validation.requiredFieldIssues)
+                    }
+
+                    if !renderResult.validation.unknownTokens.isEmpty {
+                        warningBlock(
+                            title: "Unknown tokens",
+                            lines: [renderResult.validation.unknownTokens.sorted().joined(separator: ", ")]
+                        )
+                    }
+
+                    if !renderResult.validation.unresolvedTokens.isEmpty {
+                        warningBlock(
+                            title: "Blank for preview recipient",
+                            lines: [renderResult.validation.unresolvedTokens.sorted().joined(separator: ", ")]
+                        )
+                    }
+                }
+            } else if template.hasAnyContent {
+                let status = template.isEnabled ? "Enabled" : "Disabled"
+                Text(status)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            } else {
+                Text("Optional. Add a Subject and Body with tokens like {{recipient_name}} or tokens derived from your CSV headers.")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+    }
+
+    private func warningBlock(title: String, lines: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            ForEach(lines, id: \.self) { line in
+                Text(line)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
+    private func currentMessageTemplate() -> MessageTemplate {
+        appState.pdfTemplate?.messageTemplate ?? .emptyDisabled
+    }
+
+    private func updateMessageTemplate(_ update: (inout MessageTemplate) -> Void) {
+        guard var template = appState.pdfTemplate else { return }
+        var mt = template.messageTemplate
+        update(&mt)
+        template.messageTemplate = mt
+        appState.saveTemplate(template)
+    }
+
+    private func syncTemplateEnabledState(_ template: inout MessageTemplate) {
+        if template.hasAnyContent {
+            if !template.isEnabled {
+                template.isEnabled = true
+            }
+        } else {
+            template.isEnabled = false
+        }
+    }
+
+    private func insertToken(_ token: String) {
+        let snippet = "{{\(token)}}"
+
+        switch messageTemplateFocus {
+        case .subject:
+            updateMessageTemplate { mt in
+                let clamped = Self.clamp(range: messageSubjectSelection, in: mt.subject)
+                let ns = mt.subject as NSString
+                mt.subject = ns.replacingCharacters(in: clamped, with: snippet)
+                messageSubjectSelection = NSRange(location: clamped.location + (snippet as NSString).length, length: 0)
+                mt.lastEdited = Date()
+                syncTemplateEnabledState(&mt)
+            }
+        case .body:
+            updateMessageTemplate { mt in
+                let clamped = Self.clamp(range: messageBodySelection, in: mt.body)
+                let ns = mt.body as NSString
+                mt.body = ns.replacingCharacters(in: clamped, with: snippet)
+                messageBodySelection = NSRange(location: clamped.location + (snippet as NSString).length, length: 0)
+                mt.lastEdited = Date()
+                syncTemplateEnabledState(&mt)
+            }
+        default:
+            updateMessageTemplate { mt in
+                let clamped = Self.clamp(range: messageBodySelection, in: mt.body)
+                let ns = mt.body as NSString
+                mt.body = ns.replacingCharacters(in: clamped, with: snippet)
+                messageBodySelection = NSRange(location: clamped.location + (snippet as NSString).length, length: 0)
+                mt.lastEdited = Date()
+                syncTemplateEnabledState(&mt)
+            }
+        }
+    }
+
+    private func appendToken(_ token: String, to text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return token
+        }
+
+        if text.hasSuffix("\n") {
+            return text + token
+        }
+
+        return text + " " + token
+    }
+
+    private func previewRecipientForTemplate() -> Recipient? {
+        if let id = previewRecipientID, let found = selectedRecipients.first(where: { $0.id == id }) {
+            return found
+        }
+        return selectedRecipients.first ?? appState.recipients.first
+    }
+
+    private func resolvedMessageTokenValues(for recipient: Recipient, messageTemplate: MessageTemplate, csvTokens: [CSVTokenDescriptor]) -> [String: String] {
+        var values: [String: String] = [:]
+
+        values["recipient_name"] = displayName(for: recipient)
+        values["recipient_email"] = resolvedEmail(for: recipient)
+
+        for item in csvTokens {
+            let boundHeader = messageTemplate.tokenBindings[item.token]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let headerToUse = boundHeader.isEmpty ? item.header : boundHeader
+            values[item.token] = recipient.value(forKey: headerToUse)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        }
+
+        values["packet_title"] = (appState.pdfTemplate?.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.timeZone = TimeZone.current
+        formatter.dateStyle = .short
+        formatter.timeStyle = .none
+        values["date"] = formatter.string(from: Date())
+
+        values["sender_name"] = appState.senderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        values["sender_email"] = appState.senderEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return values
+    }
+
+    private func requiredMessageTemplateIssues(
+        referencedTokens: Set<String>,
+        hasCSV: Bool,
+        headers: [String],
+        csvTokenSet: Set<String>,
+        messageTemplate: MessageTemplate
+    ) -> [String] {
+        var issues: [String] = []
+
+        let referencedCSV = referencedTokens.intersection(csvTokenSet)
+        if !referencedCSV.isEmpty, !hasCSV {
+            issues.append("Import a CSV to resolve tokens derived from CSV headers.")
+        }
+
+        return issues
+    }
+
+    private func exportGeneratedBundle() {
+        guard let template = appState.pdfTemplate else { return }
+        guard !generatedPDFs.isEmpty else { return }
+
+        let messageTemplate = template.messageTemplate
+        let shouldWriteMessages = messageTemplate.isEnabled && messageTemplate.hasAnyContent
+
+        let headers = appState.csvImport?.headers ?? []
+        let csvTokens = csvTokenCatalog(headers: headers)
+        let csvTokenSet = Set(csvTokens.map { $0.token })
+        let allowedTokens = MessageTemplateRenderer.systemTokens.union(csvTokenSet)
+
+        let fm = FileManager.default
+        let tempRoot = fm.temporaryDirectory
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.timeZone = TimeZone.current
+        dateFormatter.dateFormat = "yyyy-MM-dd_HHmmss"
+
+        let rootName = "Export_\(safeFileComponent(template.name))_\(dateFormatter.string(from: Date()))"
+        let rootURL = tempRoot.appendingPathComponent(rootName, isDirectory: true)
+
+        do {
+            if fm.fileExists(atPath: rootURL.path) {
+                try fm.removeItem(at: rootURL)
+            }
+            try fm.createDirectory(at: rootURL, withIntermediateDirectories: true)
+        } catch {
+            exportErrorMessage = "Could not create export folder."
+            showingExportErrorAlert = true
+            return
+        }
+
+        var summaryLines: [String] = []
+        summaryLines.append("recipient_name,recipient_email,pdf_path,message_path")
+
+        for item in generatedPDFs {
+            let recipient = item.recipient
+            let folderComponent = safeFileComponent(displayName(for: recipient))
+            let shortID = String(recipient.id.uuidString.prefix(8))
+            let recipientFolderName = "\(folderComponent.isEmpty ? "Recipient" : folderComponent)_\(shortID)"
+            let recipientFolderURL = rootURL.appendingPathComponent(recipientFolderName, isDirectory: true)
+
+            do {
+                try fm.createDirectory(at: recipientFolderURL, withIntermediateDirectories: true)
+            } catch {
+                exportErrorMessage = "Could not create a recipient folder."
+                showingExportErrorAlert = true
+                return
+            }
+
+            let pdfURL = recipientFolderURL.appendingPathComponent("Packet.pdf")
+            do {
+                try item.pdfData.write(to: pdfURL, options: [.atomic])
+            } catch {
+                exportErrorMessage = "Could not write Packet.pdf."
+                showingExportErrorAlert = true
+                return
+            }
+
+            var messageRelativePath = ""
+            if shouldWriteMessages {
+                let values = resolvedMessageTokenValues(for: recipient, messageTemplate: messageTemplate, csvTokens: csvTokens)
+                let result = MessageTemplateRenderer.render(template: messageTemplate, allowedTokens: allowedTokens, resolvedValues: values)
+                let messageText = "Subject: \(result.subject)\n\n\(result.body)"
+
+                let messageURL = recipientFolderURL.appendingPathComponent("Message.txt")
+                do {
+                    try messageText.write(to: messageURL, atomically: true, encoding: .utf8)
+                    messageRelativePath = "\(recipientFolderName)/Message.txt"
+                } catch {
+                    exportErrorMessage = "Could not write Message.txt."
+                    showingExportErrorAlert = true
+                    return
+                }
+            }
+
+            let recipientNameCSV = escapeCSVField(displayName(for: recipient))
+            let recipientEmailCSV = escapeCSVField(resolvedEmail(for: recipient))
+            let pdfRelativePath = "\(recipientFolderName)/Packet.pdf"
+            let pdfPathCSV = escapeCSVField(pdfRelativePath)
+            let messagePathCSV = escapeCSVField(messageRelativePath)
+            summaryLines.append("\(recipientNameCSV),\(recipientEmailCSV),\(pdfPathCSV),\(messagePathCSV)")
+        }
+
+        let summaryCSV = summaryLines.joined(separator: "\n") + "\n"
+        let summaryURL = rootURL.appendingPathComponent("Summary.csv")
+        do {
+            try summaryCSV.write(to: summaryURL, atomically: true, encoding: .utf8)
+        } catch {
+            // Summary is optional; ignore failures.
+        }
+
+        currentExportBundle = ExportBundle(url: rootURL)
+    }
+
+    private func csvTokenCatalog(headers: [String]) -> [CSVTokenDescriptor] {
+        var used: [String: Int] = [:]
+        var out: [CSVTokenDescriptor] = []
+        out.reserveCapacity(headers.count)
+
+        for header in headers {
+            let base = normalizeHeaderToToken(header)
+            let count = (used[base] ?? 0) + 1
+            used[base] = count
+            let token = count == 1 ? base : "\(base)_\(count)"
+            out.append(CSVTokenDescriptor(token: token, header: header))
+        }
+        return out
+    }
+
+    private func normalizeHeaderToToken(_ header: String) -> String {
+        let trimmed = header.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tokens = NormalizedName.from(trimmed).tokens
+        if !tokens.isEmpty {
+            return tokens.joined(separator: "_")
+        }
+
+        // Fallback: keep only lowercase alphanumerics, join chunks with underscores.
+        let lower = trimmed.lowercased()
+        let parts = lower
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let joined = parts.joined(separator: "_")
+        return joined.isEmpty ? "column" : joined
+    }
+
+    private func escapeCSVField(_ field: String) -> String {
+        if field.contains(",") || field.contains("\"") || field.contains("\n") || field.contains("\r") {
+            let escapedField = field.replacingOccurrences(of: "\"", with: "\"\"")
+            return "\"\(escapedField)\""
+        }
+        return field
     }
 
     private func attemptGenerate() {
@@ -374,8 +1067,10 @@ struct GenerateView: View {
             return
         }
 
-        // Hide the recipient list after starting generation to reduce screen clutter.
+        // Hide the recipient list + Message Template panel after starting generation to reduce screen clutter.
         isRecipientListExpanded = false
+        isMessageTemplateExpanded = false
+        messageTemplateFocus = nil
         generatePDFs()
     }
     
@@ -434,15 +1129,43 @@ struct GenerateView: View {
             showingNoEmailForRowAlert = true
             return
         }
+
+        let fallbackSubject = "\(templateName) PDF"
+        let subjectAndBody = resolvedMailSubjectAndBody(for: item.recipient, fallbackSubject: fallbackSubject)
+
         let mailItem = MailItem(
             recipientName: displayName(for: item.recipient),
             recipientEmail: email,
             templateName: templateName,
+            subject: subjectAndBody.subject,
+            body: subjectAndBody.body,
             fileName: fileName,
             pdfData: item.pdfData
         )
 
         currentMailItem = mailItem
+    }
+
+    private func resolvedMailSubjectAndBody(for recipient: Recipient, fallbackSubject: String) -> (subject: String, body: String) {
+        guard let template = appState.pdfTemplate else {
+            return (fallbackSubject, "")
+        }
+
+        let mt = template.messageTemplate
+        guard mt.isEnabled, mt.hasAnyContent else {
+            return (fallbackSubject, "")
+        }
+
+        let headers = appState.csvImport?.headers ?? []
+        let csvTokens = csvTokenCatalog(headers: headers)
+        let csvTokenSet = Set(csvTokens.map { $0.token })
+        let allowedTokens = MessageTemplateRenderer.systemTokens.union(csvTokenSet)
+
+        let values = resolvedMessageTokenValues(for: recipient, messageTemplate: mt, csvTokens: csvTokens)
+        let result = MessageTemplateRenderer.render(template: mt, allowedTokens: allowedTokens, resolvedValues: values)
+
+        let subject = result.subject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? fallbackSubject : result.subject
+        return (subject, result.body)
     }
     
     private func logSend(recipientName: String, templateName: String, fileName: String, method: SendLog.SendMethod) {
@@ -670,11 +1393,18 @@ struct ShareItem: Identifiable {
     let fileName: String
 }
 
+struct ExportBundle: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
 struct MailItem: Identifiable {
     let id = UUID()
     let recipientName: String
     let recipientEmail: String
     let templateName: String
+    let subject: String
+    let body: String
     let fileName: String
     let pdfData: Data
 }

@@ -10,10 +10,31 @@ struct SettingsView: View {
     @EnvironmentObject var iapManager: IAPManager
     @State private var showingPurchaseSheet = false
     @State private var isRestoring = false
+    @State private var showingQuickStart = false
 
 #if DEBUG
     @State private var debugForceFreeTier = false
+    @AppStorage("debug_useMailSimulator") private var debugUseMailSimulator = false
 #endif
+
+    private var appVersionDisplay: String {
+        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+
+        let s = (short ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let b = (build ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if !s.isEmpty, !b.isEmpty {
+            return "\(s) (\(b))"
+        }
+        if !s.isEmpty {
+            return s
+        }
+        if !b.isEmpty {
+            return "Build \(b)"
+        }
+        return ""
+    }
     
     var body: some View {
         NavigationView {
@@ -33,12 +54,57 @@ struct SettingsView: View {
                     }
                 }
 
+                Section(header: Text("Sender")) {
+                    TextField(
+                        "Sender name",
+                        text: Binding(
+                            get: { appState.senderName },
+                            set: { newValue in
+                                appState.saveSenderName(newValue)
+                            }
+                        )
+                    )
+                    .textInputAutocapitalization(.words)
+
+                    TextField(
+                        "Sender email",
+                        text: Binding(
+                            get: { appState.senderEmail },
+                            set: { newValue in
+                                appState.saveSenderEmail(newValue)
+                            }
+                        )
+                    )
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.emailAddress)
+                }
+
+                Section(header: Text("Help")) {
+                    NavigationLink {
+                        HowToUseView()
+                    } label: {
+                        Label("How to Use", systemImage: "questionmark.circle")
+                    }
+
+                    Button {
+                        showingQuickStart = true
+                    } label: {
+                        Label("Quick Start", systemImage: "sparkles")
+                    }
+                }
+
 #if DEBUG
                 Section(header: Text("Testing")) {
                     Toggle("Simulate Free Tier", isOn: $debugForceFreeTier)
                         .onChange(of: debugForceFreeTier) { newValue in
                             iapManager.setDebugForceFreeTier(newValue)
                         }
+
+                    Toggle("Use Mail Simulator", isOn: $debugUseMailSimulator)
+
+                    Text("When enabled, the app will show an in-app mail simulator on devices that cannot send Mail (for example, the iOS Simulator).")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
 
                     Text("Use this to test Free-tier limits even if the current Apple ID owns Pro. This does not change real App Store entitlements.")
                         .font(.caption)
@@ -116,7 +182,7 @@ struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("1.0.0")
+                        Text(appVersionDisplay)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -124,6 +190,9 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .sheet(isPresented: $showingPurchaseSheet) {
                 PurchaseView()
+            }
+            .sheet(isPresented: $showingQuickStart) {
+                QuickStartView()
             }
 #if DEBUG
             .onAppear {

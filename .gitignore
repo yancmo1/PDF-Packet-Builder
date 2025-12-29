@@ -79,6 +79,7 @@ Dependencies/
 
 fastlane/report.xml
 fastlane/Preview.html
+fastlane/testflight_changelog.txt
 fastlane/screenshots/**/*.png
 fastlane/test_output
 

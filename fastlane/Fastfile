@@ -32,6 +32,70 @@ rescue
 end
 
 platform :ios do
+  def git_output(cmd)
+    sh("cd '#{ROOT_DIR}' && #{cmd}", log: false).to_s
+  rescue
+    ""
+  end
+
+  def auto_testflight_changelog
+    max = env_value("TF_CHANGELOG_MAX").to_i
+    max = 12 if max <= 0
+
+    range = env_value("TF_CHANGELOG_RANGE")
+    if range.empty?
+      last_tag = git_output("git describe --tags --abbrev=0 2>/dev/null").strip
+      range = last_tag.empty? ? "HEAD~#{max}..HEAD" : "#{last_tag}..HEAD"
+    end
+
+    raw = git_output("git log #{range} --no-merges --pretty=format:%s")
+    subjects = raw
+      .lines
+      .map { |l| l.to_s.strip }
+      .reject { |l| l.empty? }
+      .reject { |l| l =~ /^merge\b/i }
+
+    subjects = subjects.first(max)
+
+    if subjects.empty?
+      fallback = git_output("git log -1 --pretty=format:%s").strip
+      subjects = [fallback] unless fallback.empty?
+    end
+
+    title = env_value("TF_CHANGELOG_TITLE")
+    title = Time.now.strftime("%Y-%m-%d") if title.empty?
+
+    bullets = subjects.map { |s| "- #{s}" }.join("\n")
+    notes = bullets.empty? ? title : "#{title}\n\n#{bullets}"
+    notes.to_s.strip
+  end
+
+  def read_testflight_changelog
+    from_env = env_value("TF_CHANGELOG")
+    return from_env unless from_env.empty?
+
+    path = File.join(ROOT_DIR, "fastlane", "testflight_changelog.txt")
+
+    # If a file exists and auto-generation isn't requested, use the file as-is.
+    auto = env_value("TF_AUTO_CHANGELOG")
+    if File.exist?(path) && auto != "1"
+      return File.read(path).to_s.strip
+    end
+
+    notes = auto_testflight_changelog
+
+    # Write a copy for easy review/editing before the next run (gitignored).
+    begin
+      File.write(path, notes + "\n") unless notes.to_s.strip.empty?
+    rescue => e
+      UI.important("Could not write #{path}: #{e}")
+    end
+
+    notes
+  rescue
+    ""
+  end
+
   private_lane :maybe_setup_api_key do
     key_id = env_value("ASC_KEY_ID")
     issuer_id = env_value("ASC_ISSUER_ID")
@@ -125,6 +189,10 @@ platform :ios do
     upload_args = {
       skip_waiting_for_build_processing: !should_wait
     }
+
+    # Always try to provide TestFlight release notes.
+    changelog = read_testflight_changelog
+    upload_args[:changelog] = changelog unless changelog.to_s.strip.empty?
 
     # Distribution to testers can require higher API key privileges than uploading.
     # Default to upload-only unless explicitly requested.
