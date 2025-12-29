@@ -15,10 +15,8 @@ struct MappingOption: Hashable, Identifiable {
     let kind: Kind
 
     var isAutoMappable: Bool {
-        // Computed values are intentionally conservative for auto-mapping.
-        // (Still available in the dropdown for manual selection.)
-        if value == ComputedMappingValue.blank.rawValue { return false }
-        if value == ComputedMappingValue.today.rawValue { return false }
+        // Computed values must be explicitly user-selected.
+        if kind == .computed { return false }
         return true
     }
 }
@@ -82,22 +80,8 @@ enum AutoMapper {
         case (.fullName, "FullName"): score += 0.25
         case (.email, "Email"): score += 0.25
         case (.phone, "PhoneNumber"): score += 0.25
-        case (.date, _):
-            // Prefer actual date columns/labels over computed Today.
-            if candidate.value == ComputedMappingValue.today.rawValue {
-                score -= 0.05
-            }
-        case (.initials, _):
-            if candidate.value == ComputedMappingValue.initials.rawValue {
-                score += 0.20
-            }
         default:
             break
-        }
-
-        // Slight penalty for computed values in general (except when strongly hinted).
-        if candidate.kind == .computed, pdf.hint != .initials {
-            score -= 0.05
         }
 
         return max(0, min(score, 2.0))

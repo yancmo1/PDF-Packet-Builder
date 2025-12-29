@@ -22,7 +22,6 @@ struct GenerateView: View {
     @State private var showingNoRecipientsSelectedAlert = false
     @State private var showingShareErrorAlert = false
     @State private var showingNoEmailForRowAlert = false
-    @State private var pendingMailItem: MailItem? = nil
 
     @State private var statusFilter: StatusFilter = .all
 
@@ -41,6 +40,16 @@ struct GenerateView: View {
 
     private var selectedRecipients: [Recipient] {
         appState.recipients.filter { selectedRecipientIDs.contains($0.id) }
+    }
+
+    private var needsEmailColumnSelectionToSend: Bool {
+        guard appState.csvImport != nil else { return false }
+        let selected = appState.csvEmailColumn?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !selected.isEmpty { return false }
+
+        return appState.recipients.contains { recipient in
+            recipient.source == .csv && recipient.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
     }
     
     var body: some View {
@@ -162,6 +171,13 @@ struct GenerateView: View {
                                     .cornerRadius(10)
                             }
                             .disabled(isGenerating)
+
+                            if needsEmailColumnSelectionToSend {
+                                Text("Select an Email column to send.")
+                                    .font(.footnote)
+                                    .foregroundColor(.red)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
                             
                             // Generated PDFs list
                             if !generatedPDFs.isEmpty {
@@ -184,13 +200,14 @@ struct GenerateView: View {
                                     .pickerStyle(.segmented)
                                     
                                     ForEach(filteredGeneratedPDFs(), id: \.recipient.id) { item in
+                                        let displayEmail = resolvedEmail(for: item.recipient)
+                                        let canMail = !displayEmail.isEmpty
                                         HStack {
                                             VStack(alignment: .leading) {
                                                 Text(item.recipient.fullName)
                                                     .fontWeight(.semibold)
 
                                                 HStack(spacing: 8) {
-                                                    let displayEmail = resolvedEmail(for: item.recipient)
                                                     Text(displayEmail.isEmpty ? "(no email)" : displayEmail)
                                                         .font(.caption)
                                                         .foregroundColor(.secondary)
@@ -209,10 +226,11 @@ struct GenerateView: View {
                                                     .font(.caption)
                                                     .padding(.horizontal, 10)
                                                     .padding(.vertical, 6)
-                                                    .background(Color.green)
+                                                    .background(canMail ? Color.green : Color.gray)
                                                     .foregroundColor(.white)
                                                     .cornerRadius(6)
                                             }
+                                            .disabled(!canMail)
                                             
                                             // Share button
                                             Button(action: {
@@ -327,17 +345,9 @@ struct GenerateView: View {
                 Text(mailFailedMessage)
             }
             .alert("No email found for this row", isPresented: $showingNoEmailForRowAlert) {
-                Button("Cancel", role: .cancel) {
-                    pendingMailItem = nil
-                }
-                Button("Continue") {
-                    if let pendingMailItem {
-                        currentMailItem = pendingMailItem
-                    }
-                    pendingMailItem = nil
-                }
+                Button("OK", role: .cancel) { }
             } message: {
-                Text("Mail will open with an empty To: field.")
+                Text("Select an Email column to send.")
             }
             .alert("Unable to share", isPresented: $showingShareErrorAlert) {
                 Button("OK", role: .cancel) { }
@@ -414,20 +424,19 @@ struct GenerateView: View {
         let templateName = appState.pdfTemplate?.name ?? "document"
 
         let email = resolvedEmail(for: item.recipient)
+        if email.isEmpty {
+            showingNoEmailForRowAlert = true
+            return
+        }
         let mailItem = MailItem(
             recipientName: item.recipient.fullName,
-            recipientEmail: email.isEmpty ? nil : email,
+            recipientEmail: email,
             templateName: templateName,
             fileName: fileName,
             pdfData: item.pdfData
         )
 
-        if email.isEmpty {
-            pendingMailItem = mailItem
-            showingNoEmailForRowAlert = true
-        } else {
-            currentMailItem = mailItem
-        }
+        currentMailItem = mailItem
     }
     
     private func logSend(recipientName: String, templateName: String, fileName: String, method: SendLog.SendMethod) {

@@ -129,7 +129,7 @@ struct CSVImporterView: View {
                 let csvText = try String(contentsOf: reference.url, encoding: .utf8)
 
                 let recipients = csvService.parseCSV(data: csvText)
-                let preview = csvService.parsePreview(data: csvText, maxRows: 1)
+                let preview = csvService.parsePreview(data: csvText, maxRows: 25)
                 let snapshot = CSVImportSnapshot(
                     reference: reference,
                     headers: preview.headers,
@@ -146,7 +146,8 @@ struct CSVImporterView: View {
                     appState.saveRecipients(preserved + recipients)
 
                     // Default the email-column picker when possible.
-                    if let detected = detectEmailHeader(headers: snapshot.headers, normalizedHeaders: snapshot.normalizedHeaders) {
+                    let emailDetection = csvService.detectEmailColumn(preview: preview)
+                    if let detected = emailDetection.selectedHeader {
                         appState.saveCSVEmailColumn(detected)
                     } else {
                         appState.saveCSVEmailColumn(nil)
@@ -169,27 +170,6 @@ struct CSVImporterView: View {
     private func importRecipients() {
         // Recipients are already loaded on select; keep this as a no-op except dismiss.
         dismiss()
-    }
-
-    private func detectEmailHeader(headers: [String], normalizedHeaders: [NormalizedName]?) -> String? {
-        let normalized = normalizedHeaders ?? headers.map { NormalizedName.from($0) }
-        var candidates: [String] = []
-        candidates.reserveCapacity(headers.count)
-
-        for (idx, header) in headers.enumerated() {
-            let trimmed = header.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-            guard idx < normalized.count else { continue }
-            if normalized[idx].hint == .email {
-                candidates.append(trimmed)
-            }
-        }
-
-        let unique = Array(Set(candidates))
-        if unique.count == 1 {
-            return unique[0]
-        }
-        return nil
     }
 
     private func handlePickerFailure(_ error: Error) {

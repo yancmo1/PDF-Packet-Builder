@@ -13,6 +13,11 @@ class CSVService {
         var headers: [String]
         var rows: [[String]]
     }
+
+    struct EmailColumnDetection {
+        var selectedHeader: String?
+        var confidenceByHeader: [String: Double]
+    }
     
     // Parse CSV data into recipients
     func parseCSV(data: String) -> [Recipient] {
@@ -101,6 +106,57 @@ class CSVService {
 
         return CSVPreview(headers: normalizedHeaders, rows: normalizedRows)
     }
+
+    func detectEmailColumn(preview: CSVPreview, sampleLimit: Int = 25) -> EmailColumnDetection {
+        let headers = preview.headers
+        let rows = Array(preview.rows.prefix(sampleLimit))
+
+        var scores: [String: Double] = [:]
+        scores.reserveCapacity(headers.count)
+
+        for (idx, headerRaw) in headers.enumerated() {
+            let header = headerRaw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !header.isEmpty else { continue }
+
+            let headerTokens = NormalizedName.from(header).tokens
+            let headerScore = headerSignalScore(tokens: headerTokens)
+            let headerPenalty = headerNegativePenalty(tokens: headerTokens)
+
+            let sampleValues: [String] = rows.compactMap { row in
+                guard idx < row.count else { return nil }
+                let value = row[idx].trimmingCharacters(in: .whitespacesAndNewlines)
+                return value.isEmpty ? nil : value
+            }
+
+            let valueScore = emailValueScore(sampleValues: sampleValues)
+
+            // Value shape is the strongest signal: allows detection even when headers are generic.
+            // Clamp to 0...1 after applying penalties.
+            let combined = max(0.0, min(1.0, (0.90 * valueScore) + (0.10 * headerScore) + headerPenalty))
+            scores[header] = combined
+        }
+
+        // Decision rule: select exactly one "winner" above threshold.
+        // If ambiguous or none, return nil (user must choose).
+        let threshold = 0.85
+        let winners = scores
+            .filter { $0.value >= threshold }
+            .sorted { $0.value > $1.value }
+
+        guard let best = winners.first else {
+            return EmailColumnDetection(selectedHeader: nil, confidenceByHeader: scores)
+        }
+
+        if winners.count >= 2 {
+            let second = winners[1]
+            // Require clear separation; otherwise it's ambiguous.
+            if (best.value - second.value) < 0.15 {
+                return EmailColumnDetection(selectedHeader: nil, confidenceByHeader: scores)
+            }
+        }
+
+        return EmailColumnDetection(selectedHeader: best.key, confidenceByHeader: scores)
+    }
     
     // Parse a single CSV line (handles quoted values with commas)
     private func parseCSVLine(_ line: String) -> [String] {
@@ -121,6 +177,48 @@ class CSVService {
         
         fields.append(currentField.trimmingCharacters(in: .whitespaces))
         return fields
+    }
+
+    private func headerSignalScore(tokens: [String]) -> Double {
+        let set = Set(tokens)
+        if set.contains("email") { return 1.0 }
+        if set.contains("emailaddress") { return 1.0 }
+        if set.contains("e") && set.contains("mail") { return 1.0 }
+        return 0.0
+    }
+
+    private func headerNegativePenalty(tokens: [String]) -> Double {
+        let set = Set(tokens)
+        if set.contains("cc") || set.contains("bcc") || set.contains("reply") || set.contains("subject") {
+            return -0.30
+        }
+        return 0.0
+    }
+
+    private func emailValueScore(sampleValues: [String]) -> Double {
+        // If we have too little data, don't guess.
+        guard sampleValues.count >= 3 else { return 0.0 }
+
+        let validCount = sampleValues.filter { looksLikeEmail($0) }.count
+        return Double(validCount) / Double(sampleValues.count)
+    }
+
+    private func looksLikeEmail(_ raw: String) -> Bool {
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.isEmpty { return false }
+        if value.contains(" ") { return false }
+
+        let parts = value.split(separator: "@", omittingEmptySubsequences: false)
+        if parts.count != 2 { return false }
+        let local = parts[0]
+        let domain = parts[1]
+        if local.isEmpty || domain.isEmpty { return false }
+
+        // Basic dot check in domain (must be after @ and not last).
+        if !domain.contains(".") { return false }
+        if domain.hasSuffix(".") { return false }
+
+        return true
     }
 
     private func parseRows(_ data: String) -> [[String]] {
