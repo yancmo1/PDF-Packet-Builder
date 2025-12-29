@@ -1,7 +1,7 @@
 # Copilot Instructions — PDF Packet Builder (v1, iOS 16+)
 
 ## Must Follow Instructions
-For full project context and procedures, read LIVING_PROJECT_DOC first. This file is the operating rules.
+For full project context and procedures, read LIVING_PROJECT_DOC first. This file is the operating rules. Then update the document as needed to relfect changes.
 
 ## Product Promise
 Build and send personalized **fillable AcroForm PDFs** from a CSV list, log sends **only after confirmed delivery actions**, and export logs as CSV. Offline-first. No backend.
@@ -57,5 +57,6 @@ Test this exact flow:
 ## Project build & compliance notes
 - This project is Xcode-managed (`PDFPacketBuilder.xcodeproj`) with **no `Package.swift`**.
 - Export compliance is declared in `PDFPacketBuilder/Resources/Info.plist` via `ITSAppUsesNonExemptEncryption = false`. Do not change this without product review.
+- When testing with Fastlane, use `generic/platform=iOS Simulator` as the destination to ensure broad compatibility.
 
 Keep implementation simple, human-structured, and App Store compliant.

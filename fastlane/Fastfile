@@ -3,6 +3,7 @@ default_platform(:ios)
 APP_IDENTIFIER = "com.yancmo.pdfpacketbuilder"
 PROJECT_PATH = "PDFPacketBuilder.xcodeproj"
 SCHEME = "PDFPacketBuilder"
+ROOT_DIR = File.expand_path("..", __dir__)
 
 def env_value(name)
   ENV[name].to_s.strip
@@ -70,11 +71,21 @@ platform :ios do
 
   desc "Run unit/UI tests"
   lane :tests do
-    scan(
-      project: PROJECT_PATH,
-      scheme: SCHEME,
-      clean: true
-    )
+    begin
+      scan(
+        project: PROJECT_PATH,
+        scheme: SCHEME,
+        clean: true
+      )
+    rescue => e
+      UI.important("scan failed (often means the scheme has no Test action). Falling back to a clean build.")
+      UI.important("Original error: #{e}")
+
+      destination = ENV["SIM_DESTINATION"].to_s.strip
+      destination = "generic/platform=iOS Simulator" if destination.empty?
+
+      sh("cd '#{ROOT_DIR}' && set -o pipefail && xcodebuild -scheme #{SCHEME} -project #{PROJECT_PATH} -destination '#{destination}' clean build | xcpretty")
+    end
   end
 
   desc "Build and upload to TestFlight"

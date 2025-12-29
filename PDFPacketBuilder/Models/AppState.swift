@@ -12,6 +12,7 @@ class AppState: ObservableObject {
     @Published var sendLogs: [SendLog] = []
     @Published var isProUnlocked: Bool = false
     @Published var csvImport: CSVImportSnapshot? = nil
+    @Published var csvEmailColumn: String? = nil
     
     private let storageService = StorageService()
     
@@ -30,6 +31,7 @@ class AppState: ObservableObject {
         self.sendLogs = storageService.loadLogs()
         self.isProUnlocked = storageService.loadProStatus()
         self.csvImport = storageService.loadCSVImport()
+        self.csvEmailColumn = storageService.loadCSVEmailColumn()
     }
     
     func canAddTemplate() -> Bool {
@@ -58,6 +60,17 @@ class AppState: ObservableObject {
     func clearCSVImport() {
         self.csvImport = nil
         storageService.clearCSVImport()
+    }
+
+    func saveCSVEmailColumn(_ column: String?) {
+        let trimmed = column?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmed, trimmed.isEmpty {
+            csvEmailColumn = nil
+            storageService.saveCSVEmailColumn(nil)
+        } else {
+            csvEmailColumn = trimmed
+            storageService.saveCSVEmailColumn(trimmed)
+        }
     }
     
     func addSendLog(_ log: SendLog) {
@@ -130,6 +143,10 @@ class AppState: ObservableObject {
         // Clear CSV import snapshot
         self.csvImport = nil
         storageService.clearCSVImport()
+
+        // Clear CSV email column preference
+        self.csvEmailColumn = nil
+        storageService.saveCSVEmailColumn(nil)
         
         // Clear logs
         self.sendLogs = []

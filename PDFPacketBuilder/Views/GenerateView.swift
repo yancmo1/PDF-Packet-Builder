@@ -21,10 +21,23 @@ struct GenerateView: View {
     @State private var showingRecipientLimitAlert = false
     @State private var showingNoRecipientsSelectedAlert = false
     @State private var showingShareErrorAlert = false
+    @State private var showingNoEmailForRowAlert = false
+    @State private var pendingMailItem: MailItem? = nil
+
+    @State private var statusFilter: StatusFilter = .all
 
     @State private var selectedRecipientIDs: Set<UUID> = []
+    @State private var isRecipientListExpanded = true
     
     private let pdfService = PDFService()
+
+    private enum StatusFilter: String, CaseIterable, Identifiable {
+        case all = "All"
+        case unsent = "Unsent"
+        case sent = "Sent"
+
+        var id: String { rawValue }
+    }
 
     private var selectedRecipients: [Recipient] {
         appState.recipients.filter { selectedRecipientIDs.contains($0.id) }
@@ -81,6 +94,18 @@ struct GenerateView: View {
                                     Text("Choose Recipients")
                                         .font(.headline)
                                     Spacer()
+
+                                    Button {
+                                        isRecipientListExpanded.toggle()
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Text(isRecipientListExpanded ? "Hide" : "Show")
+                                            Image(systemName: isRecipientListExpanded ? "chevron.up" : "chevron.down")
+                                                .font(.caption)
+                                        }
+                                    }
+                                    .font(.subheadline)
+
                                     Button("All") {
                                         selectedRecipientIDs = Set(appState.recipients.map { $0.id })
                                     }
@@ -91,31 +116,37 @@ struct GenerateView: View {
                                     .font(.subheadline)
                                 }
 
-                                ForEach(appState.recipients) { recipient in
-                                    Button {
-                                        if selectedRecipientIDs.contains(recipient.id) {
-                                            selectedRecipientIDs.remove(recipient.id)
-                                        } else {
-                                            selectedRecipientIDs.insert(recipient.id)
-                                        }
-                                    } label: {
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(recipient.fullName)
-                                                    .foregroundColor(.primary)
-                                                Text(recipient.email)
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
+                                if isRecipientListExpanded {
+                                    ForEach(appState.recipients) { recipient in
+                                        Button {
+                                            if selectedRecipientIDs.contains(recipient.id) {
+                                                selectedRecipientIDs.remove(recipient.id)
+                                            } else {
+                                                selectedRecipientIDs.insert(recipient.id)
                                             }
-                                            Spacer()
-                                            Image(systemName: selectedRecipientIDs.contains(recipient.id) ? "checkmark.circle.fill" : "circle")
-                                                .foregroundColor(selectedRecipientIDs.contains(recipient.id) ? .blue : .secondary)
+                                        } label: {
+                                            HStack {
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(recipient.fullName)
+                                                        .foregroundColor(.primary)
+                                                    Text(recipient.email)
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                Spacer()
+                                                Image(systemName: selectedRecipientIDs.contains(recipient.id) ? "checkmark.circle.fill" : "circle")
+                                                    .foregroundColor(selectedRecipientIDs.contains(recipient.id) ? .blue : .secondary)
+                                            }
+                                            .padding(.vertical, 6)
                                         }
-                                        .padding(.vertical, 6)
-                                    }
-                                    .buttonStyle(.plain)
+                                        .buttonStyle(.plain)
 
-                                    Divider()
+                                        Divider()
+                                    }
+                                } else {
+                                    Text("Recipient list hidden")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
                             }
                             .padding()
@@ -135,17 +166,38 @@ struct GenerateView: View {
                             // Generated PDFs list
                             if !generatedPDFs.isEmpty {
                                 VStack(alignment: .leading, spacing: 10) {
-                                    Text("Generated PDFs")
-                                        .font(.headline)
+                                    HStack {
+                                        Text("Generated PDFs")
+                                            .font(.headline)
+                                        Spacer()
+                                        let sentCount = generatedPDFs.filter { isSentStatus(for: $0) }.count
+                                        Text("Sent \(sentCount) / \(generatedPDFs.count)")
+                                            .font(.footnote)
+                                            .foregroundColor(.secondary)
+                                    }
+
+                                    Picker("Filter", selection: $statusFilter) {
+                                        ForEach(StatusFilter.allCases) { filter in
+                                            Text(filter.rawValue).tag(filter)
+                                        }
+                                    }
+                                    .pickerStyle(.segmented)
                                     
-                                    ForEach(generatedPDFs, id: \.recipient.id) { item in
+                                    ForEach(filteredGeneratedPDFs(), id: \.recipient.id) { item in
                                         HStack {
                                             VStack(alignment: .leading) {
                                                 Text(item.recipient.fullName)
                                                     .fontWeight(.semibold)
-                                                Text(item.recipient.email)
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
+
+                                                HStack(spacing: 8) {
+                                                    let displayEmail = resolvedEmail(for: item.recipient)
+                                                    Text(displayEmail.isEmpty ? "(no email)" : displayEmail)
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                        .lineLimit(1)
+
+                                                    statusChip(for: item)
+                                                }
                                             }
                                             Spacer()
                                             
@@ -274,6 +326,19 @@ struct GenerateView: View {
             } message: {
                 Text(mailFailedMessage)
             }
+            .alert("No email found for this row", isPresented: $showingNoEmailForRowAlert) {
+                Button("Cancel", role: .cancel) {
+                    pendingMailItem = nil
+                }
+                Button("Continue") {
+                    if let pendingMailItem {
+                        currentMailItem = pendingMailItem
+                    }
+                    pendingMailItem = nil
+                }
+            } message: {
+                Text("Mail will open with an empty To: field.")
+            }
             .alert("Unable to share", isPresented: $showingShareErrorAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
@@ -293,6 +358,8 @@ struct GenerateView: View {
             return
         }
 
+        // Hide the recipient list after starting generation to reduce screen clutter.
+        isRecipientListExpanded = false
         generatePDFs()
     }
     
@@ -322,7 +389,7 @@ struct GenerateView: View {
     }
     
     private func sharePDF(_ item: (recipient: Recipient, pdfData: Data)) {
-        let fileName = "\(appState.pdfTemplate?.name ?? "document")_\(item.recipient.fullName).pdf"
+        let fileName = outputFileName(for: item.recipient)
         
         guard let url = StorageService().savePDFToDocuments(data: item.pdfData, filename: fileName) else {
             showingShareErrorAlert = true
@@ -342,16 +409,25 @@ struct GenerateView: View {
             showingMailUnavailableAlert = true
             return
         }
-        
-        let fileName = "\(appState.pdfTemplate?.name ?? "document")_\(item.recipient.fullName).pdf"
-        
-        currentMailItem = MailItem(
+
+        let fileName = outputFileName(for: item.recipient)
+        let templateName = appState.pdfTemplate?.name ?? "document"
+
+        let email = resolvedEmail(for: item.recipient)
+        let mailItem = MailItem(
             recipientName: item.recipient.fullName,
-            recipientEmail: item.recipient.email,
-            templateName: appState.pdfTemplate?.name ?? "document",
+            recipientEmail: email.isEmpty ? nil : email,
+            templateName: templateName,
             fileName: fileName,
             pdfData: item.pdfData
         )
+
+        if email.isEmpty {
+            pendingMailItem = mailItem
+            showingNoEmailForRowAlert = true
+        } else {
+            currentMailItem = mailItem
+        }
     }
     
     private func logSend(recipientName: String, templateName: String, fileName: String, method: SendLog.SendMethod) {
@@ -363,6 +439,112 @@ struct GenerateView: View {
             method: method
         )
         appState.addSendLog(log)
+    }
+
+    private func outputFileName(for recipient: Recipient) -> String {
+        let templateComponent = safeFileComponent(appState.pdfTemplate?.name ?? "document")
+        let nameComponent = safeFileComponent(recipient.fullName)
+        let shortID = recipient.id.uuidString.prefix(8)
+        return "\(templateComponent)_\(nameComponent)_\(shortID).pdf"
+    }
+
+    private func legacyOutputFileName(for recipient: Recipient) -> String {
+        let templateComponent = safeFileComponent(appState.pdfTemplate?.name ?? "document")
+        let nameComponent = safeFileComponent(recipient.fullName)
+        return "\(templateComponent)_\(nameComponent).pdf"
+    }
+
+    private func originalLegacyOutputFileName(for recipient: Recipient) -> String {
+        "\(appState.pdfTemplate?.name ?? "document")_\(recipient.fullName).pdf"
+    }
+
+    private func safeFileComponent(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return "item" }
+
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_ "))
+        let mapped = String(trimmed.unicodeScalars.map { scalar -> Character in
+            if allowed.contains(scalar) {
+                return Character(scalar)
+            }
+            return "_"
+        })
+
+        // Avoid creating paths with leading/trailing spaces/underscores.
+        let collapsed = mapped
+            .replacingOccurrences(of: "__+", with: "_", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: " _"))
+
+        // Keep names reasonably short.
+        if collapsed.count > 60 {
+            return String(collapsed.prefix(60))
+        }
+        return collapsed.isEmpty ? "item" : collapsed
+    }
+
+    private func resolvedEmail(for recipient: Recipient) -> String {
+        if let column = appState.csvEmailColumn?.trimmingCharacters(in: .whitespacesAndNewlines), !column.isEmpty {
+            let fromColumn = recipient.value(forKey: column)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !fromColumn.isEmpty {
+                return fromColumn
+            }
+        }
+
+        return recipient.email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func sendLogForGenerated(_ item: (recipient: Recipient, pdfData: Data)) -> SendLog? {
+        let templateName = appState.pdfTemplate?.name ?? "document"
+
+        let currentFileName = outputFileName(for: item.recipient)
+        let legacyFileName = legacyOutputFileName(for: item.recipient)
+        let originalLegacyFileName = originalLegacyOutputFileName(for: item.recipient)
+
+        let matching = appState.sendLogs.filter {
+            $0.templateName == templateName && (
+                $0.outputFileName == currentFileName ||
+                $0.outputFileName == legacyFileName ||
+                $0.outputFileName == originalLegacyFileName
+            )
+        }
+
+        return matching.max(by: { $0.sentDate < $1.sentDate })
+    }
+
+    private func isSentStatus(for item: (recipient: Recipient, pdfData: Data)) -> Bool {
+        sendLogForGenerated(item) != nil
+    }
+
+    @ViewBuilder
+    private func statusChip(for item: (recipient: Recipient, pdfData: Data)) -> some View {
+        if let log = sendLogForGenerated(item) {
+            Text("Sent \(log.formattedSentDate)")
+                .font(.caption2)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.green.opacity(0.15))
+                .foregroundColor(.green)
+                .clipShape(Capsule())
+        } else {
+            Text("Unsent")
+                .font(.caption2)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.gray.opacity(0.15))
+                .foregroundColor(.secondary)
+                .clipShape(Capsule())
+        }
+    }
+
+    private func filteredGeneratedPDFs() -> [(recipient: Recipient, pdfData: Data)] {
+        switch statusFilter {
+        case .all:
+            return generatedPDFs
+        case .unsent:
+            return generatedPDFs.filter { !isSentStatus(for: $0) }
+        case .sent:
+            return generatedPDFs.filter { isSentStatus(for: $0) }
+        }
     }
 }
 
@@ -396,7 +578,7 @@ struct ShareItem: Identifiable {
 struct MailItem: Identifiable {
     let id = UUID()
     let recipientName: String
-    let recipientEmail: String
+    let recipientEmail: String?
     let templateName: String
     let fileName: String
     let pdfData: Data

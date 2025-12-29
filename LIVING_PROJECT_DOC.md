@@ -1,6 +1,6 @@
 # PDF Packet Builder - Living Project Documentation
 
-**Last Updated:** 2025-12-28  
+**Last Updated:** 2025-12-29  
 **Version:** 1.0  
 **Bundle ID:** `com.yancmo.pdfpacketbuilder`  
 **Team ID:** `9PHS626XUN`
@@ -50,6 +50,7 @@ PDF Packet Builder is an iOS application that automates the process of filling P
 - File location: `PDFPacketBuilder/Views/TemplateView.swift`
 - Uses `PDFService` to extract AcroForm fields from PDFs
 - Supports `DocumentPicker` for file selection
+- Imports via Files providers (e.g., OneDrive/iCloud) by copying to a local sandbox URL for reliable access
 - Displays PDF preview using `PDFKit`
 - Shows list of detected form fields
 - Free tier: 1 template maximum
@@ -60,6 +61,7 @@ PDF Packet Builder is an iOS application that automates the process of filling P
 - Fields stored in `PDFTemplate` model with `PDFField` array
 - Template persisted to disk via `StorageService`
 - Supports text fields and checkboxes from AcroForm
+- Template name comes from the imported PDF filename (no UUID prefixes)
 
 ### 2. Recipients Management (RecipientsView)
 **Purpose:** Import and manage recipient data
@@ -70,6 +72,9 @@ PDF Packet Builder is an iOS application that automates the process of filling P
   1. **CSV Import** - `CSVImporterView` with field mapping
   2. **Contacts Import** - `ContactsPickerView` with system contacts integration
   3. **Manual Entry** - `ManualRecipientView` for individual recipients
+- Deletion UX:
+   - Swipe reveals a Delete button (no full-swipe instant delete)
+   - Edit mode supports batch select + batch delete
 - Free tier: 10 recipients per batch maximum
 - Pro: Unlimited recipients
 
@@ -86,6 +91,7 @@ PDF Packet Builder is an iOS application that automates the process of filling P
 - Contact access requires `NSContactsUsageDescription` in Info.plist
 - Recipients stored as array in `AppState`
 - Persisted via `StorageService` using `UserDefaults`
+- Contacts picker supports searching (name/email/phone) and keeps an always-visible Add button while searching
 
 ### 3. Field Mapping (MapView)
 **Purpose:** Map CSV columns or contact fields to PDF form fields
@@ -105,38 +111,44 @@ PDF Packet Builder is an iOS application that automates the process of filling P
 - Used during PDF generation to fill correct fields
 
 ### 4. PDF Generation (GenerateView)
-**Purpose:** Generate personalized PDFs for all recipients
+**Purpose:** Generate personalized PDFs for selected recipients
 
 **Implementation:**
 - File location: `PDFPacketBuilder/Views/GenerateView.swift`
-- Batch processes all recipients
+- User selects which recipients to include for the current generation
 - Generates one PDF per recipient
-- Shares generated PDFs via iOS share sheet
-- Logs each generation to history
+- Provides per-recipient actions:
+   - Share (iOS share sheet)
+   - Mail (in-app mail composer)
+- Logs sends only after confirmed delivery actions (share completed, mail sent)
 
 **Generation Process:**
 1. Validates template and recipients exist
-2. Checks free tier limits (10 recipients max)
-3. For each recipient:
+2. User selects recipients for this batch
+3. Checks free tier limits (10 selected recipients max)
+4. For each selected recipient:
    - Clones template PDF
    - Applies field mappings
    - Fills PDF fields via `PDFService.generatePersonalizedPDF()`
    - Names file: `{TemplateName}_{FullName}.pdf`
-4. Creates share sheet with all generated PDFs
-5. Logs generation to `SendLog`
+5. User shares/mails PDFs one at a time
+6. Logs to `SendLog` only when:
+   - Share sheet `completed == true`, or
+   - Mail composer result is `.sent`
 
 **Technical Details:**
 - Uses `PDFKit.PDFDocument` for field filling
 - Filename sanitization to prevent invalid characters
-- Generation happens on main thread (UI may block for large batches)
+- Generation happens on a background queue (UI remains responsive)
 - Share sheet via `UIActivityViewController` wrapper
+- Mail via `MFMailComposeViewController` wrapper
 
 ### 5. History & Logs (LogsView)
-**Purpose:** Track PDF generation history
+**Purpose:** Track send/share history (confirmed delivery actions only)
 
 **Implementation:**
 - File location: `PDFPacketBuilder/Views/LogsView.swift`
-- Displays chronological list of generations
+- Displays chronological list of send/share actions
 - Shows: recipient name, template name, date, method
 - Free tier: 7-day log retention
 - Pro: Unlimited log retention
@@ -165,6 +177,10 @@ PDF Packet Builder is an iOS application that automates the process of filling P
 - Real-time purchase status updates
 - Restore purchases via `AppStore.sync()`
 - Pro status persisted separately from transaction verification
+
+**Debug Testing:**
+- Debug builds include a Settings toggle to *simulate Free tier* for testing, even when the Apple ID owns Pro.
+- This does not change real App Store entitlements and is excluded from production builds.
 
 ---
 
@@ -248,7 +264,7 @@ PDFPacketBuilder/
 "recipients"
 "sendLogs"
 "isProUnlocked"
-"csvImportSnapshot"
+"csvImport"
 ```
 
 ### Services
@@ -268,7 +284,7 @@ PDFPacketBuilder/
 #### ContactsService
 - **Purpose:** System contacts access
 - **Key Methods:**
-  - `requestAccess() async -> Bool` - Request permission
+   - `requestAccessIfNeeded() async -> Bool` - Request permission only when appropriate
   - `fetchContacts() -> [CNContact]` - Retrieve contacts
 - **Permissions:** Requires `NSContactsUsageDescription`
 
@@ -654,8 +670,9 @@ Pre-configured tasks in `.vscode/tasks.json`:
 - [ ] CSV preview shows correct data
 - [ ] Field mapping works
 - [ ] Import from Contacts (grant permission)
+- [ ] Search contacts and add while searching (persistent Add button)
 - [ ] Manual recipient entry works
-- [ ] Edit/delete recipients
+- [ ] Edit/delete recipients (swipe reveals Delete; Edit supports batch delete)
 - [ ] Free tier: Cannot add >10 recipients
 
 **Map Tab:**
@@ -667,11 +684,16 @@ Pre-configured tasks in `.vscode/tasks.json`:
 **Generate Tab:**
 - [ ] Generate button enabled when ready
 - [ ] PDFs generate correctly
+- [ ] Can select subset of recipients for generation
 - [ ] All mapped fields filled
 - [ ] Filename format correct
 - [ ] Share sheet displays
 - [ ] Can save/share generated PDFs
-- [ ] Free tier: Cannot generate with >10 recipients
+- [ ] Share 1 PDF → complete → log appears
+- [ ] Share 1 PDF → cancel → no log
+- [ ] Mail 1 PDF → send → log appears
+- [ ] Mail 1 PDF → cancel → no log
+- [ ] Free tier: Cannot generate with >10 selected recipients
 
 **Logs Tab:**
 - [ ] Shows generation history
@@ -844,15 +866,15 @@ Pre-configured tasks in `.vscode/tasks.json`:
 
 3. **Batch Generation Progress**
    - **Description:** Progress bar during PDF generation
-   - **Current State:** UI blocks during generation
+   - **Current State:** Generation runs on a background queue; UI stays responsive, but there is no progress indicator yet
    - **Implementation:** Background task with progress updates
    - **Files to Modify:** `GenerateView.swift`, `PDFService.swift`
 
-4. **Email Integration**
-   - **Description:** Send generated PDFs via email directly
-   - **Current State:** Share sheet only
-   - **Implementation:** `MFMailComposeViewController` integration
-   - **Files to Modify:** `GenerateView.swift`, `MailComposer.swift`
+4. **Batch Share / Export Flow**
+   - **Description:** Offer a single action to share/export multiple generated PDFs at once (ZIP or multi-select)
+   - **Current State:** Share/Mail is per-recipient
+   - **Implementation:** Multi-selection + export packaging (ZIP)
+   - **Files to Modify:** `GenerateView.swift`, new `ExportService.swift`
 
 #### Priority 2: Medium-Term
 
@@ -925,7 +947,7 @@ Pre-configured tasks in `.vscode/tasks.json`:
 
 2. **Performance:**
    - Large batches (>100 recipients) may cause UI lag
-   - PDF generation on main thread
+   - PDF generation is backgrounded, but very large batches may still be slow due to PDF work and file I/O
 
 3. **CSV Parsing:**
    - Limited encoding support (UTF-8 primarily)
@@ -971,6 +993,15 @@ Pre-configured tasks in `.vscode/tasks.json`:
 2. Ensure proper quoting for fields with commas
 3. Check for consistent number of columns per row
 4. Test with simple CSV first
+
+#### Issue: Import fails from OneDrive/iCloud (“Access to the selected file was denied”)
+
+**Cause:** Some Files providers require security-scoped access and coordinated reads, and can temporarily deny access if the file is not fully downloaded.
+
+**Solutions:**
+1. In the Files app, ensure the file is downloaded locally (e.g., “Download Now”)
+2. As a quick sanity check, import a copy stored in “On My iPhone”
+3. Re-open the picker and re-select the file (providers can time out)
 
 #### Issue: TestFlight upload fails
 
@@ -1057,7 +1088,7 @@ Pre-configured tasks in `.vscode/tasks.json`:
 8. Troubleshooting solutions found
 
 **Update Process:**
-1. Edit `PROJECT.md`
+1. Edit `LIVING_PROJECT_DOC.md`
 2. Update "Last Updated" date at top
 3. Commit with descriptive message
 4. Keep changes in sync with code
