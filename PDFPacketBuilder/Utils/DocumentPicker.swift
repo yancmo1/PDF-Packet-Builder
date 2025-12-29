@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import Foundation
+import UIKit
 import UniformTypeIdentifiers
 
 struct DocumentPicker: UIViewControllerRepresentable {
@@ -15,7 +17,9 @@ struct DocumentPicker: UIViewControllerRepresentable {
     var onFailure: ((Error) -> Void)? = nil
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
+        // `asCopy: true` is significantly more reliable for cloud providers (OneDrive/iCloud)
+        // because the system hands the app a readable local copy.
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes, asCopy: true)
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = false
         return picker
@@ -37,23 +41,30 @@ struct DocumentPicker: UIViewControllerRepresentable {
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
             guard let url = urls.first else { return }
 
-            // Start accessing security-scoped resource and copy locally so async reads work reliably.
-            guard url.startAccessingSecurityScopedResource() else {
-                parent.onFailure?(DocumentPickerError.securityScopeDenied)
-                return
-            }
-            defer { url.stopAccessingSecurityScopedResource() }
-
-            do {
-                let localURL = try makeLocalCopy(of: url)
-
-                if let onPDFSelected = parent.onPDFSelected {
-                    onPDFSelected(localURL)
-                } else {
-                    parent.onSelected(localURL)
+            // Cloud providers (OneDrive/iCloud) may require file coordination and can be slow.
+            // Do the copy off the main thread, then call back on the main thread.
+            DispatchQueue.global(qos: .userInitiated).async {
+                let didStartSecurityScope = url.startAccessingSecurityScopedResource()
+                defer {
+                    if didStartSecurityScope {
+                        url.stopAccessingSecurityScopedResource()
+                    }
                 }
-            } catch {
-                parent.onFailure?(error)
+
+                do {
+                    let localURL = try self.makeLocalCopy(of: url)
+                    DispatchQueue.main.async {
+                        if let onPDFSelected = self.parent.onPDFSelected {
+                            onPDFSelected(localURL)
+                        } else {
+                            self.parent.onSelected(localURL)
+                        }
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        self.parent.onFailure?(error)
+                    }
+                }
             }
         }
 
@@ -66,25 +77,51 @@ struct DocumentPicker: UIViewControllerRepresentable {
                 try fileManager.createDirectory(at: destinationDir, withIntermediateDirectories: true)
             }
 
-            let destination = destinationDir.appendingPathComponent("\(UUID().uuidString)-\(sourceURL.lastPathComponent)")
+            // Keep the original filename so the UI shows the real PDF name.
+            // Use a unique subfolder to avoid collisions.
+            let uniqueDir = destinationDir.appendingPathComponent(UUID().uuidString, isDirectory: true)
+            if !fileManager.fileExists(atPath: uniqueDir.path) {
+                try fileManager.createDirectory(at: uniqueDir, withIntermediateDirectories: true)
+            }
+
+            let destination = uniqueDir.appendingPathComponent(sourceURL.lastPathComponent)
 
             if fileManager.fileExists(atPath: destination.path) {
                 try fileManager.removeItem(at: destination)
             }
 
-            do {
-                try fileManager.copyItem(at: sourceURL, to: destination)
-                return destination
-            } catch {
-                // Fallback for providers that don't support copyItem well.
+            // Coordinate reads for File Provider URLs.
+            var coordinatedError: NSError?
+            var resultURL: URL?
+            var copyError: Error?
+
+            NSFileCoordinator().coordinate(readingItemAt: sourceURL, options: [], error: &coordinatedError) { coordinatedURL in
                 do {
-                    let data = try Data(contentsOf: sourceURL)
-                    try data.write(to: destination, options: [.atomic])
-                    return destination
+                    do {
+                        try fileManager.copyItem(at: coordinatedURL, to: destination)
+                        resultURL = destination
+                    } catch {
+                        // Fallback for providers that don't support copyItem well.
+                        let data = try Data(contentsOf: coordinatedURL)
+                        try data.write(to: destination, options: [.atomic])
+                        resultURL = destination
+                    }
                 } catch {
-                    throw error
+                    copyError = error
                 }
             }
+
+            if let error = coordinatedError {
+                throw error
+            }
+            if let error = copyError {
+                throw error
+            }
+            if let resultURL = resultURL {
+                return resultURL
+            }
+
+            throw DocumentPickerError.securityScopeDenied
         }
     }
 }

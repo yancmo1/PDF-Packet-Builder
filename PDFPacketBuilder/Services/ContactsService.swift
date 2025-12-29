@@ -11,12 +11,26 @@ import Contacts
 class ContactsService {
     private let store = CNContactStore()
     
-    // Request contact access permission
-    func requestAccess() async -> Bool {
-        do {
-            return try await store.requestAccess(for: .contacts)
-        } catch {
-            print("Error requesting contacts access: \(error)")
+    // Request contact access permission (only when needed).
+    // When access is already denied/restricted, do not re-request (it can throw and spam logs).
+    func requestAccessIfNeeded() async -> Bool {
+        let status = authorizationStatus()
+        switch status {
+        case .authorized:
+            return true
+        case .notDetermined:
+            do {
+                return try await store.requestAccess(for: .contacts)
+            } catch {
+                print("Error requesting contacts access: \(error)")
+                return false
+            }
+        case .denied, .restricted:
+            return false
+        case .limited:
+            // Treat limited access as granted; fetch will return only allowed contacts.
+            return true
+        @unknown default:
             return false
         }
     }

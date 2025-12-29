@@ -10,6 +10,10 @@ struct SettingsView: View {
     @EnvironmentObject var iapManager: IAPManager
     @State private var showingPurchaseSheet = false
     @State private var isRestoring = false
+
+#if DEBUG
+    @State private var debugForceFreeTier = false
+#endif
     
     var body: some View {
         NavigationView {
@@ -28,6 +32,19 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+#if DEBUG
+                Section(header: Text("Testing")) {
+                    Toggle("Simulate Free Tier", isOn: $debugForceFreeTier)
+                        .onChange(of: debugForceFreeTier) { newValue in
+                            iapManager.setDebugForceFreeTier(newValue)
+                        }
+
+                    Text("Use this to test Free-tier limits even if the current Apple ID owns Pro. This does not change real App Store entitlements.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+#endif
                 
                 if !iapManager.isProUnlocked {
                     Section(header: Text("Free Plan Limits")) {
@@ -108,6 +125,11 @@ struct SettingsView: View {
             .sheet(isPresented: $showingPurchaseSheet) {
                 PurchaseView()
             }
+#if DEBUG
+            .onAppear {
+                debugForceFreeTier = iapManager.debugForceFreeTierEnabled()
+            }
+#endif
         }
     }
     

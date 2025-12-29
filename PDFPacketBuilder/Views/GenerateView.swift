@@ -12,14 +12,23 @@ struct GenerateView: View {
     @State private var isGenerating = false
     @State private var generatedPDFs: [(recipient: Recipient, pdfData: Data)] = []
     @State private var showingShareSheet = false
-    @State private var showingMailComposer = false
     @State private var currentShareItem: ShareItem?
     @State private var currentMailItem: MailItem?
     @State private var showingPaywall = false
     @State private var showingMailUnavailableAlert = false
+    @State private var showingMailFailedAlert = false
+    @State private var mailFailedMessage: String = ""
     @State private var showingRecipientLimitAlert = false
+    @State private var showingNoRecipientsSelectedAlert = false
+    @State private var showingShareErrorAlert = false
+
+    @State private var selectedRecipientIDs: Set<UUID> = []
     
     private let pdfService = PDFService()
+
+    private var selectedRecipients: [Recipient] {
+        appState.recipients.filter { selectedRecipientIDs.contains($0.id) }
+    }
     
     var body: some View {
         NavigationView {
@@ -56,10 +65,57 @@ struct GenerateView: View {
                                         Text("Recipients")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
-                                        Text("\(appState.recipients.count)")
+                                        Text("\(selectedRecipientIDs.count) selected of \(appState.recipients.count)")
                                             .fontWeight(.semibold)
                                     }
                                     Spacer()
+                                }
+                            }
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(10)
+
+                            // Recipient selection
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Text("Choose Recipients")
+                                        .font(.headline)
+                                    Spacer()
+                                    Button("All") {
+                                        selectedRecipientIDs = Set(appState.recipients.map { $0.id })
+                                    }
+                                    .font(.subheadline)
+                                    Button("None") {
+                                        selectedRecipientIDs.removeAll()
+                                    }
+                                    .font(.subheadline)
+                                }
+
+                                ForEach(appState.recipients) { recipient in
+                                    Button {
+                                        if selectedRecipientIDs.contains(recipient.id) {
+                                            selectedRecipientIDs.remove(recipient.id)
+                                        } else {
+                                            selectedRecipientIDs.insert(recipient.id)
+                                        }
+                                    } label: {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(recipient.fullName)
+                                                    .foregroundColor(.primary)
+                                                Text(recipient.email)
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            Spacer()
+                                            Image(systemName: selectedRecipientIDs.contains(recipient.id) ? "checkmark.circle.fill" : "circle")
+                                                .foregroundColor(selectedRecipientIDs.contains(recipient.id) ? .blue : .secondary)
+                                        }
+                                        .padding(.vertical, 6)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    Divider()
                                 }
                             }
                             .padding()
@@ -131,6 +187,18 @@ struct GenerateView: View {
                 }
             }
             .navigationTitle("Generate PDFs")
+            .onAppear {
+                // Default to all recipients selected.
+                if selectedRecipientIDs.isEmpty {
+                    selectedRecipientIDs = Set(appState.recipients.map { $0.id })
+                }
+            }
+            .onChange(of: appState.recipients) { newRecipients in
+                // Remove IDs that no longer exist, and auto-select new recipients.
+                let newIDs = Set(newRecipients.map { $0.id })
+                selectedRecipientIDs = selectedRecipientIDs.intersection(newIDs)
+                selectedRecipientIDs.formUnion(newIDs)
+            }
             .overlay {
                 if isGenerating {
                     ProgressView("Generating PDFs...")
@@ -141,28 +209,43 @@ struct GenerateView: View {
                 }
             }
             .sheet(item: $currentShareItem) { item in
-                ShareSheet(items: [item.url]) { completed in
+                ShareSheet(
+                    items: [item.url],
+                    excludedActivityTypes: [
+                        .assignToContact,
+                        .saveToCameraRoll,
+                        .markupAsPDF,
+                        .openInIBooks,
+                        .addToReadingList,
+                        .postToFacebook,
+                        .postToTwitter,
+                        .postToWeibo,
+                        .postToTencentWeibo
+                    ]
+                ) { completed in
                     if completed {
                         // Log the send only after successful share
                         logSend(recipientName: item.recipientName, templateName: item.templateName, fileName: item.fileName, method: .share)
                     }
                 }
             }
-            .sheet(isPresented: $showingMailComposer) {
-                if let mailItem = currentMailItem {
-                    MailComposer(
-                        subject: "\(mailItem.templateName) PDF",
-                        recipient: mailItem.recipientEmail,
-                        pdfData: mailItem.pdfData,
-                        fileName: mailItem.fileName
-                    ) { result in
-                        if result == .sent {
-                            // Log the send only after mail was sent
-                            logSend(recipientName: mailItem.recipientName, templateName: mailItem.templateName, fileName: mailItem.fileName, method: .mail)
-                        }
-                        showingMailComposer = false
-                        currentMailItem = nil
+            .sheet(item: $currentMailItem) { mailItem in
+                MailComposer(
+                    subject: "\(mailItem.templateName) PDF",
+                    recipient: mailItem.recipientEmail,
+                    pdfData: mailItem.pdfData,
+                    fileName: mailItem.fileName
+                ) { result, error in
+                    if result == .sent {
+                        // Log the send only after mail was sent
+                        logSend(recipientName: mailItem.recipientName, templateName: mailItem.templateName, fileName: mailItem.fileName, method: .mail)
+                    } else if result == .failed || error != nil {
+                        mailFailedMessage = error?.localizedDescription ?? "Mail could not be sent. Please try again."
+                        showingMailFailedAlert = true
                     }
+
+                    // Dismiss sheet and clear state
+                    currentMailItem = nil
                 }
             }
             .sheet(isPresented: $showingPaywall) {
@@ -176,16 +259,36 @@ struct GenerateView: View {
             } message: {
                 Text("Free version supports 10 recipients per batch. Unlock Pro to remove limits.")
             }
+            .alert("No recipients selected", isPresented: $showingNoRecipientsSelectedAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Select at least one recipient to generate PDFs.")
+            }
             .alert("Mail Not Available", isPresented: $showingMailUnavailableAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text("Mail is not configured on this device. Please set up Mail in Settings.")
             }
+            .alert("Mail Failed", isPresented: $showingMailFailedAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(mailFailedMessage)
+            }
+            .alert("Unable to share", isPresented: $showingShareErrorAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("We could not prepare the PDF for sharing. Please try again.")
+            }
         }
     }
 
     private func attemptGenerate() {
-        if !iapManager.isProUnlocked && appState.recipients.count > AppState.freeMaxRecipients {
+        if selectedRecipientIDs.isEmpty {
+            showingNoRecipientsSelectedAlert = true
+            return
+        }
+
+        if !iapManager.isProUnlocked && selectedRecipientIDs.count > AppState.freeMaxRecipients {
             showingRecipientLimitAlert = true
             return
         }
@@ -195,6 +298,9 @@ struct GenerateView: View {
     
     private func generatePDFs() {
         guard let template = appState.pdfTemplate else { return }
+
+        // Snapshot inputs on the main thread to avoid races while generating.
+        let recipientsToGenerate = selectedRecipients
         
         isGenerating = true
         generatedPDFs.removeAll()
@@ -202,7 +308,7 @@ struct GenerateView: View {
         DispatchQueue.global(qos: .userInitiated).async {
             var pdfs: [(Recipient, Data)] = []
             
-            for recipient in appState.recipients {
+            for recipient in recipientsToGenerate {
                 if let pdfData = pdfService.generatePersonalizedPDF(template: template, recipient: recipient) {
                     pdfs.append((recipient, pdfData))
                 }
@@ -218,14 +324,17 @@ struct GenerateView: View {
     private func sharePDF(_ item: (recipient: Recipient, pdfData: Data)) {
         let fileName = "\(appState.pdfTemplate?.name ?? "document")_\(item.recipient.fullName).pdf"
         
-        if let url = StorageService().savePDFToDocuments(data: item.pdfData, filename: fileName) {
-            currentShareItem = ShareItem(
-                url: url,
-                recipientName: item.recipient.fullName,
-                templateName: appState.pdfTemplate?.name ?? "document",
-                fileName: fileName
-            )
+        guard let url = StorageService().savePDFToDocuments(data: item.pdfData, filename: fileName) else {
+            showingShareErrorAlert = true
+            return
         }
+
+        currentShareItem = ShareItem(
+            url: url,
+            recipientName: item.recipient.fullName,
+            templateName: appState.pdfTemplate?.name ?? "document",
+            fileName: fileName
+        )
     }
     
     private func sendMail(_ item: (recipient: Recipient, pdfData: Data)) {
@@ -243,7 +352,6 @@ struct GenerateView: View {
             fileName: fileName,
             pdfData: item.pdfData
         )
-        showingMailComposer = true
     }
     
     private func logSend(recipientName: String, templateName: String, fileName: String, method: SendLog.SendMethod) {

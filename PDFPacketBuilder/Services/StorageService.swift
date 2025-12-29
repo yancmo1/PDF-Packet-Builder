@@ -130,7 +130,7 @@ class StorageService {
     func savePDFToDocuments(data: Data, filename: String) -> URL? {
         let url = getDocumentsDirectory().appendingPathComponent(filename)
         do {
-            try data.write(to: url)
+            try data.write(to: url, options: [.atomic])
             return url
         } catch {
             print("Error saving PDF: \(error)")

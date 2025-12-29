@@ -144,7 +144,7 @@ struct CSVImporterView: View {
     }
 
     private func handlePickerFailure(_ error: Error) {
-        importErrorMessage = "Access to the selected file was denied. Please choose a file stored locally or grant permission."
+        importErrorMessage = "Access to the selected file was denied. Please choose a file stored locally (On My iPhone) or grant permission in the file provider."
         showingImportError = true
     }
 }

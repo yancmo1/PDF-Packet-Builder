@@ -9,10 +9,15 @@ import SwiftUI
 
 struct RecipientsView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.editMode) private var editMode
     @State private var showingContactsPicker = false
     @State private var showingCSVImporter = false
     @State private var showingAddManual = false
     @State private var selectedRecipients = Set<UUID>()
+
+    private var isEditing: Bool {
+        editMode?.wrappedValue == .active
+    }
     
     var body: some View {
         NavigationView {
@@ -71,17 +76,29 @@ struct RecipientsView: View {
                     // Recipients list
                     List {
                         ForEach(appState.recipients) { recipient in
-                            RecipientRow(recipient: recipient, isSelected: selectedRecipients.contains(recipient.id))
+                            RecipientRow(recipient: recipient, isSelected: isEditing && selectedRecipients.contains(recipient.id))
+                                .contentShape(Rectangle())
                                 .onTapGesture {
+                                    guard isEditing else { return }
                                     toggleSelection(recipient.id)
                                 }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    // Avoid "swipe and gone". Require tapping Delete.
+                                    Button(role: .destructive) {
+                                        deleteRecipient(recipient.id)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                         }
-                        .onDelete(perform: deleteRecipients)
                     }
                 }
             }
             .navigationTitle("Recipients (\(appState.recipients.count))")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    EditButton()
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: { showingContactsPicker = true }) {
@@ -101,6 +118,17 @@ struct RecipientsView: View {
                         }
                     } label: {
                         Image(systemName: "plus.circle")
+                    }
+                }
+
+                ToolbarItem(placement: .bottomBar) {
+                    if isEditing {
+                        Button(role: .destructive) {
+                            deleteSelectedRecipients()
+                        } label: {
+                            Label("Delete (\(selectedRecipients.count))", systemImage: "trash")
+                        }
+                        .disabled(selectedRecipients.isEmpty)
                     }
                 }
             }
@@ -124,14 +152,21 @@ struct RecipientsView: View {
         }
     }
     
-    private func deleteRecipients(at offsets: IndexSet) {
-        var recipients = appState.recipients
-        recipients.remove(atOffsets: offsets)
+    private func deleteRecipient(_ id: UUID) {
+        let recipients = appState.recipients.filter { $0.id != id }
         appState.saveRecipients(recipients)
+        selectedRecipients.remove(id)
     }
     
     private func clearAll() {
         appState.saveRecipients([])
+        selectedRecipients.removeAll()
+    }
+
+    private func deleteSelectedRecipients() {
+        guard !selectedRecipients.isEmpty else { return }
+        let remaining = appState.recipients.filter { !selectedRecipients.contains($0.id) }
+        appState.saveRecipients(remaining)
         selectedRecipients.removeAll()
     }
 }

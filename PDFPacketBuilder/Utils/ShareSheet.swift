@@ -10,10 +10,12 @@ import UIKit
 
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
+    var excludedActivityTypes: [UIActivity.ActivityType] = []
     var onComplete: ((Bool) -> Void)? = nil
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        controller.excludedActivityTypes = excludedActivityTypes
         controller.completionWithItemsHandler = { _, completed, _, _ in
             onComplete?(completed)
         }

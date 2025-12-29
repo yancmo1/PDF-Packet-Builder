@@ -13,9 +13,9 @@ struct MailComposer: UIViewControllerRepresentable {
     let recipient: String?
     let pdfData: Data
     let fileName: String
-    let onComplete: (MFMailComposeResult) -> Void
-    
-    @Environment(\.presentationMode) var presentationMode
+    let onComplete: (MFMailComposeResult, Error?) -> Void
+
+    @Environment(\.dismiss) private var dismiss
     
     func makeUIViewController(context: Context) -> MFMailComposeViewController {
         let composer = MFMailComposeViewController()
@@ -45,8 +45,8 @@ struct MailComposer: UIViewControllerRepresentable {
         }
         
         func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
-            parent.onComplete(result)
-            parent.presentationMode.wrappedValue.dismiss()
+            parent.onComplete(result, error)
+            parent.dismiss()
         }
     }
 }

@@ -14,6 +14,10 @@ class IAPManager: NSObject, ObservableObject {
     @Published var lastPurchaseStatusMessage: String?
     
     static let proProductID = "com.yancmo.pdfpacketbuilder.pro.unlock"
+
+#if DEBUG
+    private static let debugForceFreeTierKey = "debug.forceFreeTier"
+#endif
     
     private var updateListenerTask: Task<Void, Error>?
     
@@ -129,8 +133,26 @@ class IAPManager: NSObject, ObservableObject {
     }
     
     var isProUnlocked: Bool {
-        purchasedProductIDs.contains(Self.proProductID)
+#if DEBUG
+        if UserDefaults.standard.bool(forKey: Self.debugForceFreeTierKey) {
+            return false
+        }
+#endif
+        return purchasedProductIDs.contains(Self.proProductID)
     }
+
+#if DEBUG
+    @MainActor
+    func setDebugForceFreeTier(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: Self.debugForceFreeTierKey)
+        // Trigger any UI that depends on `isProUnlocked` to refresh.
+        objectWillChange.send()
+    }
+
+    func debugForceFreeTierEnabled() -> Bool {
+        UserDefaults.standard.bool(forKey: Self.debugForceFreeTierKey)
+    }
+#endif
     
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         switch result {
