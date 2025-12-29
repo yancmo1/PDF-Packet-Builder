@@ -18,6 +18,11 @@ class CSVService {
         var selectedHeader: String?
         var confidenceByHeader: [String: Double]
     }
+
+    struct DisplayNameColumnDetection {
+        var selectedHeader: String?
+        var confidenceByHeader: [String: Double]
+    }
     
     // Parse CSV data into recipients
     func parseCSV(data: String) -> [Recipient] {
@@ -157,6 +162,57 @@ class CSVService {
 
         return EmailColumnDetection(selectedHeader: best.key, confidenceByHeader: scores)
     }
+
+    // Presentation-only: detect a "display name" column to show in lists.
+    // This must remain separate from routing (email) and mapping (PDF field mapping).
+    func detectDisplayNameColumn(preview: CSVPreview, sampleLimit: Int = 25) -> DisplayNameColumnDetection {
+        let headers = preview.headers
+        let rows = Array(preview.rows.prefix(sampleLimit))
+
+        var scores: [String: Double] = [:]
+        scores.reserveCapacity(headers.count)
+
+        for (idx, headerRaw) in headers.enumerated() {
+            let header = headerRaw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !header.isEmpty else { continue }
+
+            let headerTokens = NormalizedName.from(header).tokens
+            let headerScore = displayNameHeaderSignalScore(tokens: headerTokens)
+            let headerPenalty = displayNameHeaderNegativePenalty(tokens: headerTokens)
+
+            let sampleValues: [String] = rows.compactMap { row in
+                guard idx < row.count else { return nil }
+                let value = row[idx].trimmingCharacters(in: .whitespacesAndNewlines)
+                return value.isEmpty ? nil : value
+            }
+
+            let valueScore = displayNameValueScore(sampleValues: sampleValues)
+
+            // Both header and value shape matter here.
+            let combined = max(0.0, min(1.0, (0.70 * valueScore) + (0.30 * headerScore) + headerPenalty))
+            scores[header] = combined
+        }
+
+        // Decision rule: pick exactly one winner above threshold.
+        // If ambiguous, return nil and fall back to other presentation options.
+        let threshold = 0.60
+        let winners = scores
+            .filter { $0.value >= threshold }
+            .sorted { $0.value > $1.value }
+
+        guard let best = winners.first else {
+            return DisplayNameColumnDetection(selectedHeader: nil, confidenceByHeader: scores)
+        }
+
+        if winners.count >= 2 {
+            let second = winners[1]
+            if (best.value - second.value) < 0.12 {
+                return DisplayNameColumnDetection(selectedHeader: nil, confidenceByHeader: scores)
+            }
+        }
+
+        return DisplayNameColumnDetection(selectedHeader: best.key, confidenceByHeader: scores)
+    }
     
     // Parse a single CSV line (handles quoted values with commas)
     private func parseCSVLine(_ line: String) -> [String] {
@@ -193,6 +249,96 @@ class CSVService {
             return -0.30
         }
         return 0.0
+    }
+
+    private func displayNameHeaderSignalScore(tokens: [String]) -> Double {
+        let set = Set(tokens)
+        // Strong positives.
+        if set.contains("name") && (set.contains("student") || set.contains("parent") || set.contains("guardian")) {
+            return 1.0
+        }
+        if set.contains("fullname") || (set.contains("full") && set.contains("name")) {
+            return 0.95
+        }
+        if set.contains("name") {
+            return 0.80
+        }
+        // Weak positives.
+        if set.contains("first") || set.contains("firstname") {
+            return 0.55
+        }
+        if set.contains("last") || set.contains("lastname") {
+            return 0.45
+        }
+        return 0.0
+    }
+
+    private func displayNameHeaderNegativePenalty(tokens: [String]) -> Double {
+        let set = Set(tokens)
+
+        // Not person names.
+        if set.contains("email") || set.contains("emailaddress") || (set.contains("e") && set.contains("mail")) {
+            return -0.50
+        }
+        if set.contains("phone") || set.contains("phonenumber") || set.contains("tel") || set.contains("telephone") {
+            return -0.40
+        }
+        if set.contains("date") || set.contains("time") {
+            return -0.35
+        }
+        if set.contains("team") || set.contains("club") || set.contains("org") || set.contains("organization") || set.contains("school") {
+            return -0.35
+        }
+        if set.contains("address") || set.contains("city") || set.contains("state") || set.contains("zip") || set.contains("postal") {
+            return -0.35
+        }
+        if set.contains("id") {
+            return -0.25
+        }
+        return 0.0
+    }
+
+    private func displayNameValueScore(sampleValues: [String]) -> Double {
+        // If we have too little data, don't guess.
+        guard sampleValues.count >= 3 else { return 0.0 }
+
+        let scores = sampleValues.map { personNameScore($0) }
+        let total = scores.reduce(0.0, +)
+        return total / Double(scores.count)
+    }
+
+    private func personNameScore(_ raw: String) -> Double {
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.isEmpty { return 0.0 }
+        if value.contains("@") { return 0.0 }
+
+        // Reject if it looks numeric-heavy.
+        let digitCount = value.unicodeScalars.filter { CharacterSet.decimalDigits.contains($0) }.count
+        if digitCount > 0 { return 0.0 }
+
+        // Basic word count.
+        let words = value
+            .replacingOccurrences(of: ",", with: " ")
+            .split(whereSeparator: { $0.isWhitespace })
+            .map(String.init)
+
+        if words.isEmpty { return 0.0 }
+
+        // Penalize long/compound strings.
+        if words.count > 5 { return 0.20 }
+
+        // Measure letter density.
+        let letterCount = value.unicodeScalars.filter { CharacterSet.letters.contains($0) }.count
+        let scalarCount = max(1, value.unicodeScalars.count)
+        let letterRatio = Double(letterCount) / Double(scalarCount)
+        if letterRatio < 0.55 { return 0.0 }
+
+        // Common name shapes.
+        if words.count == 2 || words.count == 3 { return 1.0 }
+        if words.count == 1 { return 0.45 }
+        if words.count == 4 { return 0.65 }
+
+        return 0.50
     }
 
     private func emailValueScore(sampleValues: [String]) -> Double {

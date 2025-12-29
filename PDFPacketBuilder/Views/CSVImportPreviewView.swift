@@ -191,6 +191,14 @@ struct CSVImportPreviewView: View {
                         showingNoEmailDetectedAlert = true
                     }
 
+                    // Presentation-only: default a display-name column when possible.
+                    let displayNameDetection = csvService.detectDisplayNameColumn(preview: preview)
+                    if let detected = displayNameDetection.selectedHeader {
+                        appState.saveCSVDisplayNameColumn(detected)
+                    } else {
+                        appState.saveCSVDisplayNameColumn(nil)
+                    }
+
                     fileName = reference.originalFileName
                     headers = preview.headers
                     rows = preview.rows

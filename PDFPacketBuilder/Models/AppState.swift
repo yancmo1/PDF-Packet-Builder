@@ -13,6 +13,7 @@ class AppState: ObservableObject {
     @Published var isProUnlocked: Bool = false
     @Published var csvImport: CSVImportSnapshot? = nil
     @Published var csvEmailColumn: String? = nil
+    @Published var csvDisplayNameColumn: String? = nil
     
     private let storageService = StorageService()
     
@@ -32,6 +33,7 @@ class AppState: ObservableObject {
         self.isProUnlocked = storageService.loadProStatus()
         self.csvImport = storageService.loadCSVImport()
         self.csvEmailColumn = storageService.loadCSVEmailColumn()
+        self.csvDisplayNameColumn = storageService.loadCSVDisplayNameColumn()
     }
     
     func canAddTemplate() -> Bool {
@@ -70,6 +72,17 @@ class AppState: ObservableObject {
         } else {
             csvEmailColumn = trimmed
             storageService.saveCSVEmailColumn(trimmed)
+        }
+    }
+
+    func saveCSVDisplayNameColumn(_ column: String?) {
+        let trimmed = column?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmed, trimmed.isEmpty {
+            csvDisplayNameColumn = nil
+            storageService.saveCSVDisplayNameColumn(nil)
+        } else {
+            csvDisplayNameColumn = trimmed
+            storageService.saveCSVDisplayNameColumn(trimmed)
         }
     }
     
@@ -147,6 +160,10 @@ class AppState: ObservableObject {
         // Clear CSV email column preference
         self.csvEmailColumn = nil
         storageService.saveCSVEmailColumn(nil)
+
+        // Clear CSV display name column preference
+        self.csvDisplayNameColumn = nil
+        storageService.saveCSVDisplayNameColumn(nil)
         
         // Clear logs
         self.sendLogs = []

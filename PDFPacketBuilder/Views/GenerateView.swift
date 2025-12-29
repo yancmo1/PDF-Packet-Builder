@@ -136,11 +136,17 @@ struct GenerateView: View {
                                         } label: {
                                             HStack {
                                                 VStack(alignment: .leading, spacing: 2) {
-                                                    Text(recipient.fullName)
+                                                    let primary = displayName(for: recipient)
+                                                    let secondary = resolvedEmail(for: recipient)
+
+                                                    Text(primary)
                                                         .foregroundColor(.primary)
-                                                    Text(recipient.email)
-                                                        .font(.caption)
-                                                        .foregroundColor(.secondary)
+
+                                                    if !secondary.isEmpty && secondary != primary {
+                                                        Text(secondary)
+                                                            .font(.caption)
+                                                            .foregroundColor(.secondary)
+                                                    }
                                                 }
                                                 Spacer()
                                                 Image(systemName: selectedRecipientIDs.contains(recipient.id) ? "checkmark.circle.fill" : "circle")
@@ -204,7 +210,7 @@ struct GenerateView: View {
                                         let canMail = !displayEmail.isEmpty
                                         HStack {
                                             VStack(alignment: .leading) {
-                                                Text(item.recipient.fullName)
+                                                Text(displayName(for: item.recipient))
                                                     .fontWeight(.semibold)
 
                                                 HStack(spacing: 8) {
@@ -408,7 +414,7 @@ struct GenerateView: View {
 
         currentShareItem = ShareItem(
             url: url,
-            recipientName: item.recipient.fullName,
+            recipientName: displayName(for: item.recipient),
             templateName: appState.pdfTemplate?.name ?? "document",
             fileName: fileName
         )
@@ -429,7 +435,7 @@ struct GenerateView: View {
             return
         }
         let mailItem = MailItem(
-            recipientName: item.recipient.fullName,
+            recipientName: displayName(for: item.recipient),
             recipientEmail: email,
             templateName: templateName,
             fileName: fileName,
@@ -452,14 +458,14 @@ struct GenerateView: View {
 
     private func outputFileName(for recipient: Recipient) -> String {
         let templateComponent = safeFileComponent(appState.pdfTemplate?.name ?? "document")
-        let nameComponent = safeFileComponent(recipient.fullName)
+        let nameComponent = safeFileComponent(displayName(for: recipient))
         let shortID = recipient.id.uuidString.prefix(8)
         return "\(templateComponent)_\(nameComponent)_\(shortID).pdf"
     }
 
     private func legacyOutputFileName(for recipient: Recipient) -> String {
         let templateComponent = safeFileComponent(appState.pdfTemplate?.name ?? "document")
-        let nameComponent = safeFileComponent(recipient.fullName)
+        let nameComponent = safeFileComponent(displayName(for: recipient))
         return "\(templateComponent)_\(nameComponent).pdf"
     }
 
@@ -500,6 +506,86 @@ struct GenerateView: View {
         }
 
         return recipient.email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func displayName(for recipient: Recipient) -> String {
+        // If we have a chosen/detected display-name column, try it first.
+        if let column = appState.csvDisplayNameColumn?.trimmingCharacters(in: .whitespacesAndNewlines), !column.isEmpty {
+            let fromColumn = recipient.value(forKey: column)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !fromColumn.isEmpty {
+                return fromColumn
+            }
+        }
+
+        let fullName = recipient.fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !fullName.isEmpty {
+            return fullName
+        }
+
+        // CSV recipients often store a single full-name column in customFields.
+        if recipient.source == .csv, let fallback = bestNameFromCustomFields(recipient) {
+            return fallback
+        }
+
+        let email = resolvedEmail(for: recipient)
+        if !email.isEmpty {
+            return email
+        }
+
+        return "Recipient"
+    }
+
+    private func bestNameFromCustomFields(_ recipient: Recipient) -> String? {
+        let candidates: [(value: String, score: Double)] = recipient.customFields.compactMap { key, value in
+            let v = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !v.isEmpty else { return nil }
+            guard !v.contains("@") else { return nil }
+
+            let tokens = Set(NormalizedName.from(key).tokens)
+            if tokens.contains("email") || tokens.contains("phone") || tokens.contains("date") {
+                return nil
+            }
+
+            var s: Double = 0.0
+            if tokens.contains("name") { s += 0.6 }
+            if tokens.contains("student") || tokens.contains("parent") || tokens.contains("guardian") { s += 0.2 }
+            if tokens.contains("team") || tokens.contains("club") || tokens.contains("org") || tokens.contains("organization") { s -= 0.4 }
+
+            // Value-shape bonus.
+            s += personNameScore(v) * 0.6
+            return (v, s)
+        }
+
+        guard let best = candidates.max(by: { $0.score < $1.score }), best.score >= 0.75 else {
+            return nil
+        }
+        return best.value
+    }
+
+    private func personNameScore(_ raw: String) -> Double {
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.isEmpty { return 0.0 }
+        if value.contains("@") { return 0.0 }
+
+        let digitCount = value.unicodeScalars.filter { CharacterSet.decimalDigits.contains($0) }.count
+        if digitCount > 0 { return 0.0 }
+
+        let words = value
+            .replacingOccurrences(of: ",", with: " ")
+            .split(whereSeparator: { $0.isWhitespace })
+
+        if words.isEmpty { return 0.0 }
+        if words.count > 5 { return 0.20 }
+
+        let letterCount = value.unicodeScalars.filter { CharacterSet.letters.contains($0) }.count
+        let scalarCount = max(1, value.unicodeScalars.count)
+        let letterRatio = Double(letterCount) / Double(scalarCount)
+        if letterRatio < 0.55 { return 0.0 }
+
+        if words.count == 2 || words.count == 3 { return 1.0 }
+        if words.count == 1 { return 0.45 }
+        if words.count == 4 { return 0.65 }
+        return 0.50
     }
 
     private func sendLogForGenerated(_ item: (recipient: Recipient, pdfData: Data)) -> SendLog? {
@@ -587,7 +673,7 @@ struct ShareItem: Identifiable {
 struct MailItem: Identifiable {
     let id = UUID()
     let recipientName: String
-    let recipientEmail: String?
+    let recipientEmail: String
     let templateName: String
     let fileName: String
     let pdfData: Data

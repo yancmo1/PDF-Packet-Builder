@@ -64,9 +64,9 @@ struct CSVImporterView: View {
                         
                         List(importedRecipients) { recipient in
                             VStack(alignment: .leading) {
-                                Text(recipient.fullName)
+                                Text(displayName(for: recipient))
                                     .fontWeight(.semibold)
-                                Text(recipient.email)
+                                Text(displayEmail(for: recipient))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -154,6 +154,14 @@ struct CSVImporterView: View {
                         showingNoEmailDetectedAlert = true
                     }
 
+                    // Presentation-only: default a display-name column when possible.
+                    let displayNameDetection = csvService.detectDisplayNameColumn(preview: preview)
+                    if let detected = displayNameDetection.selectedHeader {
+                        appState.saveCSVDisplayNameColumn(detected)
+                    } else {
+                        appState.saveCSVDisplayNameColumn(nil)
+                    }
+
                     self.isProcessing = false
                 }
             } catch {
@@ -170,6 +178,32 @@ struct CSVImporterView: View {
     private func importRecipients() {
         // Recipients are already loaded on select; keep this as a no-op except dismiss.
         dismiss()
+    }
+
+    private func displayName(for recipient: Recipient) -> String {
+        let fromColumn: String = {
+            let column = appState.csvDisplayNameColumn?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if column.isEmpty { return "" }
+            return recipient.value(forKey: column)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        }()
+
+        if !fromColumn.isEmpty { return fromColumn }
+
+        let fullName = recipient.fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !fullName.isEmpty { return fullName }
+
+        let email = displayEmail(for: recipient)
+        if !email.isEmpty { return email }
+        return "Recipient"
+    }
+
+    private func displayEmail(for recipient: Recipient) -> String {
+        let email = recipient.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !email.isEmpty { return email }
+
+        let column = appState.csvEmailColumn?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if column.isEmpty { return "" }
+        return recipient.value(forKey: column)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
     private func handlePickerFailure(_ error: Error) {
