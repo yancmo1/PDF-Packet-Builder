@@ -169,7 +169,7 @@ struct CSVImportPreviewView: View {
             do {
                 let reference = try storageService.importCSVToDocuments(from: url)
                 let csvText = try String(contentsOf: reference.url, encoding: .utf8)
-                let preview = csvService.parsePreview(data: csvText, maxRows: 20)
+                let preview = csvService.parsePreview(data: csvText, maxRows: 25)
                 let recipients = csvService.parseCSV(data: csvText)
 
                 let normalized = preview.headers.map { NormalizedName.from($0) }
@@ -183,11 +183,20 @@ struct CSVImportPreviewView: View {
                     appState.saveRecipients(preserved + recipients)
 
                     // Auto-select a CSV email column if we can detect exactly one.
-                    if let detected = detectEmailHeader(headers: snapshot.headers, normalizedHeaders: snapshot.normalizedHeaders) {
+                    let emailDetection = csvService.detectEmailColumn(preview: preview)
+                    if let detected = emailDetection.selectedHeader {
                         appState.saveCSVEmailColumn(detected)
                     } else {
                         appState.saveCSVEmailColumn(nil)
                         showingNoEmailDetectedAlert = true
+                    }
+
+                    // Presentation-only: default a display-name column when possible.
+                    let displayNameDetection = csvService.detectDisplayNameColumn(preview: preview)
+                    if let detected = displayNameDetection.selectedHeader {
+                        appState.saveCSVDisplayNameColumn(detected)
+                    } else {
+                        appState.saveCSVDisplayNameColumn(nil)
                     }
 
                     fileName = reference.originalFileName
@@ -204,27 +213,6 @@ struct CSVImportPreviewView: View {
         }
     }
 
-    private func detectEmailHeader(headers: [String], normalizedHeaders: [NormalizedName]?) -> String? {
-        let normalized = normalizedHeaders ?? headers.map { NormalizedName.from($0) }
-        var candidates: [String] = []
-        candidates.reserveCapacity(headers.count)
-
-        for (idx, header) in headers.enumerated() {
-            let trimmed = header.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-            guard idx < normalized.count else { continue }
-            if normalized[idx].hint == .email {
-                candidates.append(trimmed)
-            }
-        }
-
-        let unique = Array(Set(candidates))
-        if unique.count == 1 {
-            return unique[0]
-        }
-        return nil
-    }
-
     private func loadPreview(from url: URL, fileName: String) {
         errorMessage = nil
         isProcessing = true
@@ -232,7 +220,7 @@ struct CSVImportPreviewView: View {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 let csvText = try String(contentsOf: url, encoding: .utf8)
-                let preview = csvService.parsePreview(data: csvText, maxRows: 20)
+                let preview = csvService.parsePreview(data: csvText, maxRows: 25)
 
                 DispatchQueue.main.async {
                     self.fileName = fileName

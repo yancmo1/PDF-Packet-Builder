@@ -44,9 +44,24 @@ struct MapView: View {
                                     Text("\(csvImport.headers.count)")
                                         .foregroundColor(.secondary)
                                 }
-                                Button("Preview") {
-                                    showingCSVImport = true
+
+                                Picker("Name column", selection: Binding(
+                                    get: { appState.csvDisplayNameColumn ?? "" },
+                                    set: { newValue in
+                                        let value = newValue.isEmpty ? nil : newValue
+                                        appState.saveCSVDisplayNameColumn(value)
+                                    }
+                                )) {
+                                    Text("Use Recipient Name").tag("")
+                                    let headers = csvImport.headers
+                                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                        .filter { !$0.isEmpty }
+                                    let uniqueHeaders = Array(Set(headers)).sorted()
+                                    ForEach(uniqueHeaders, id: \.self) { header in
+                                        Text(header).tag(header)
+                                    }
                                 }
+                                .pickerStyle(.menu)
 
                                 Picker("Email column", selection: Binding(
                                     get: { appState.csvEmailColumn ?? "" },
@@ -65,12 +80,28 @@ struct MapView: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
+
+                                Button("Preview Data") {
+                                    showingCSVImport = true
+                                }
                             } else {
                                 Text("No CSV selected")
                                     .foregroundColor(.secondary)
                                 Button("Import CSV") {
                                     showingCSVImport = true
                                 }
+
+                                Picker("Name column", selection: Binding(
+                                    get: { appState.csvDisplayNameColumn ?? "" },
+                                    set: { newValue in
+                                        let value = newValue.isEmpty ? nil : newValue
+                                        appState.saveCSVDisplayNameColumn(value)
+                                    }
+                                )) {
+                                    Text("Use Recipient Name").tag("")
+                                }
+                                .pickerStyle(.menu)
+                                .disabled(true)
 
                                 Picker("Email column", selection: Binding(
                                     get: { appState.csvEmailColumn ?? "" },
@@ -82,6 +113,11 @@ struct MapView: View {
                                     Text("Use Recipient Email").tag("")
                                 }
                                 .pickerStyle(.menu)
+                                .disabled(true)
+
+                                Button("Preview Data") {
+                                    showingCSVImport = true
+                                }
                                 .disabled(true)
                             }
                         }

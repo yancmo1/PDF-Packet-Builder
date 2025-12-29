@@ -10,7 +10,7 @@ import MessageUI
 
 struct MailComposer: UIViewControllerRepresentable {
     let subject: String
-    let recipient: String?
+    let recipient: String
     let pdfData: Data
     let fileName: String
     let onComplete: (MFMailComposeResult, Error?) -> Void
@@ -21,8 +21,8 @@ struct MailComposer: UIViewControllerRepresentable {
         let composer = MFMailComposeViewController()
         composer.mailComposeDelegate = context.coordinator
         composer.setSubject(subject)
-        
-        if let recipient = recipient, !recipient.isEmpty {
+
+        if !recipient.isEmpty {
             composer.setToRecipients([recipient])
         }
         

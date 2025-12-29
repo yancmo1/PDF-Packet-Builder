@@ -19,6 +19,7 @@ class StorageService {
     private let legacyProStatusKey = "isPro"
     private let csvImportKey = "csvImport"
     private let csvEmailColumnKey = "csvEmailColumn"
+    private let csvDisplayNameColumnKey = "csvDisplayNameColumn"
     
     // MARK: - Template Storage
     
@@ -105,6 +106,24 @@ class StorageService {
 
     func loadCSVEmailColumn() -> String? {
         let value = defaults.string(forKey: csvEmailColumnKey)
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmed, !trimmed.isEmpty {
+            return trimmed
+        }
+        return nil
+    }
+
+    func saveCSVDisplayNameColumn(_ column: String?) {
+        let trimmed = column?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmed, !trimmed.isEmpty {
+            defaults.set(trimmed, forKey: csvDisplayNameColumnKey)
+        } else {
+            defaults.removeObject(forKey: csvDisplayNameColumnKey)
+        }
+    }
+
+    func loadCSVDisplayNameColumn() -> String? {
+        let value = defaults.string(forKey: csvDisplayNameColumnKey)
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let trimmed, !trimmed.isEmpty {
             return trimmed
