@@ -18,11 +18,24 @@ def env_configured?(name)
   true
 end
 
+def expand_env_path(path)
+  p = path.to_s.strip
+  return "" if p.empty?
+
+  home = Dir.respond_to?(:home) ? Dir.home : ENV["HOME"].to_s
+  p = p.gsub(/\$HOME\b/, home) unless home.empty?
+  p = p.gsub(/^~(?=\/|$)/, home) unless home.empty?
+
+  File.expand_path(p)
+rescue
+  p
+end
+
 platform :ios do
   private_lane :maybe_setup_api_key do
     key_id = env_value("ASC_KEY_ID")
     issuer_id = env_value("ASC_ISSUER_ID")
-    key_path = env_value("ASC_KEY_PATH")
+    key_path = expand_env_path(env_value("ASC_KEY_PATH"))
 
     api_key = nil
 

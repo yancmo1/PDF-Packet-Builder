@@ -1,6 +1,6 @@
 # PDF Packet Builder - Living Project Documentation
 
-**Last Updated:** 2025-12-29  
+**Last Updated:** 2025-12-28  
 **Version:** 1.0  
 **Bundle ID:** `com.yancmo.pdfpacketbuilder`  
 **Team ID:** `9PHS626XUN`
@@ -79,12 +79,19 @@ PDF Packet Builder is an iOS application that automates the process of filling P
 - Pro: Unlimited recipients
 
 **CSV Import Flow:**
-1. User selects CSV file
-2. `CSVService.parseCSV()` parses file into rows
-3. `CSVImportPreviewView` shows preview with field mapping
-4. `FieldMappingView` allows column-to-field mapping
-5. Data stored in `CSVImportSnapshot` model
-6. Recipients converted to `Recipient` model instances
+1. User selects a CSV file (either from **Recipients** tab or **Map** tab)
+2. CSV is copied into the app sandbox for reliable access (`StorageService.importCSVToDocuments`)
+3. `CSVService.parsePreview()` extracts headers + sample rows for display
+4. `CSVService.parseCSV()` parses the full file into `[Recipient]`
+5. A `CSVImportSnapshot` is saved with:
+   - file reference
+   - headers
+   - normalized headers (for conservative mapping)
+6. Recipients are loaded into `AppState` immediately:
+   - Manual/Contacts recipients are preserved
+   - Previously CSV-imported recipients are replaced (prevents duplicates)
+7. If exactly one email-like column is detected from headers, it becomes the default for "Email column".
+   - Otherwise, the app defaults to "Use Recipient Email" and shows an informational alert.
 
 **Technical Details:**
 - CSV parsing supports quoted fields, escaped quotes
@@ -102,8 +109,20 @@ PDF Packet Builder is an iOS application that automates the process of filling P
   - Available PDF fields from template
   - Available data columns from recipients
   - Current mappings
-- Drag-and-drop or picker-based mapping UI
+- Picker-based mapping UI (manual review/editing)
 - Mappings stored in template configuration
+
+**Behavior Notes / Good to Know:**
+- Mapping is disabled until a CSV is selected (prevents mapping to stale/unknown headers).
+- When a CSV is selected, the app may apply conservative auto-suggestions **only for unmapped fields**.
+   - Auto-suggestions only apply when there is a single high-confidence match.
+   - Ambiguous fields remain unmapped.
+- Computed mapping options are available in the picker:
+   - Initials
+   - Today (MM-DD-YY)
+   - Blank
+- The same source (built-in, computed, or CSV header) can be used for multiple PDF fields.
+- "Email column" selection controls which value is used to prefill Mail recipients in Generate.
 
 **Technical Details:**
 - Mapping stored in `PDFTemplate.fieldMappings` dictionary
@@ -130,11 +149,18 @@ PDF Packet Builder is an iOS application that automates the process of filling P
    - Clones template PDF
    - Applies field mappings
    - Fills PDF fields via `PDFService.generatePersonalizedPDF()`
-   - Names file: `{TemplateName}_{FullName}.pdf`
+   - Names file: `{TemplateName}_{FullName}_{RecipientIDPrefix}.pdf` (sanitized + unique)
 5. User shares/mails PDFs one at a time
 6. Logs to `SendLog` only when:
    - Share sheet `completed == true`, or
    - Mail composer result is `.sent`
+
+**UX Enhancements:**
+- Recipient list can be shown/hidden to reduce clutter; it auto-collapses after tapping "Generate PDFs".
+- Each generated item shows a Sent/Unsent status chip derived from `SendLog` (no duplicate state).
+- Filter: All / Unsent / Sent
+- Progress label: Sent X / Y
+- Mail "To:" prefills from the selected "Email column" (if set); if missing, the app warns and opens Mail with an empty To field.
 
 **Technical Details:**
 - Uses `PDFKit.PDFDocument` for field filling
@@ -208,7 +234,7 @@ PDFPacketBuilder/
 │   ├── PurchaseView.swift             # IAP paywall
 │   ├── CSVImporterView.swift          # CSV import UI
 │   ├── CSVImportPreviewView.swift     # CSV preview
-│   ├── FieldMappingView.swift         # Field mapper
+│   ├── FieldMappingView.swift         # Legacy mapping view (not primary flow)
 │   ├── ContactsPickerView.swift       # Contact picker
 │   ├── ManualRecipientView.swift      # Manual entry form
 │   └── PDFPreviewView.swift           # PDF preview
@@ -241,6 +267,7 @@ PDFPacketBuilder/
 - `sendLogs: [SendLog]` - Generation history
 - `isProUnlocked: Bool` - Pro status
 - `csvImport: CSVImportSnapshot?` - CSV import state
+- `csvEmailColumn: String?` - Optional CSV header used to prefill Mail recipients
 
 **Environment Objects:**
 - `@EnvironmentObject var appState: AppState` - Shared across all views
@@ -257,6 +284,7 @@ PDFPacketBuilder/
 - Logs (as JSON array)
 - Pro status (Bool)
 - CSV import snapshot (as JSON)
+- CSV email column selection (String?)
 
 **Storage Keys:**
 ```swift
@@ -265,6 +293,7 @@ PDFPacketBuilder/
 "sendLogs"
 "isProUnlocked"
 "csvImport"
+"csvEmailColumn"
 ```
 
 ### Services
@@ -278,8 +307,9 @@ PDFPacketBuilder/
 #### CSVService
 - **Purpose:** CSV file parsing
 - **Key Methods:**
-  - `parseCSV(data: Data) -> [[String: String]]` - Parse CSV to dictionary array
-- **Features:** Handles quoted fields, escaped quotes, various encodings
+   - `parseCSV(data: String) -> [Recipient]` - Parse CSV into recipients
+   - `parsePreview(data: String, maxRows: Int) -> CSVPreview` - Headers + sample rows preview
+- **Features:** Handles quoted fields, escaped quotes, commas, mixed LF/CRLF, missing values (best-effort)
 
 #### ContactsService
 - **Purpose:** System contacts access
@@ -510,7 +540,8 @@ PDF,form,bulk,merge,generator,template,certificate,personalized,automation,docum
    ```bash
    bundle exec fastlane tests
    ```
-   Runs unit and UI tests via `scan`
+   Runs unit/UI tests via `scan` when a Test action is configured.
+   If the scheme has no tests configured, the lane falls back to a clean build to keep CI green.
 
 2. **Beta (TestFlight):**
    ```bash
@@ -668,7 +699,7 @@ Pre-configured tasks in `.vscode/tasks.json`:
 **Recipients Tab:**
 - [ ] Import CSV file
 - [ ] CSV preview shows correct data
-- [ ] Field mapping works
+- [ ] Recipients list populates from CSV (and CSV re-import replaces prior CSV recipients)
 - [ ] Import from Contacts (grant permission)
 - [ ] Search contacts and add while searching (persistent Add button)
 - [ ] Manual recipient entry works
@@ -677,22 +708,30 @@ Pre-configured tasks in `.vscode/tasks.json`:
 
 **Map Tab:**
 - [ ] Shows template fields
-- [ ] Shows available data columns
-- [ ] Field mapping UI functional
+- [ ] Mapping disabled until a CSV is selected
+- [ ] Shows available CSV columns once a CSV is selected
+- [ ] Field mapping UI functional (picker)
+- [ ] Computed mapping options available (Initials/Today/Blank)
+- [ ] Email column defaults correctly (auto-detected when possible)
 - [ ] Mappings persist
 
 **Generate Tab:**
 - [ ] Generate button enabled when ready
 - [ ] PDFs generate correctly
 - [ ] Can select subset of recipients for generation
+- [ ] Recipient list can be Show/Hidden; auto-collapses after Generate
 - [ ] All mapped fields filled
-- [ ] Filename format correct
+- [ ] Filename format correct (includes recipient ID suffix; sanitized)
+- [ ] Sent/Unsent status chips show correctly
+- [ ] Filter All/Unsent/Sent works
+- [ ] Sent X / Y progress updates after logging
 - [ ] Share sheet displays
 - [ ] Can save/share generated PDFs
 - [ ] Share 1 PDF → complete → log appears
 - [ ] Share 1 PDF → cancel → no log
 - [ ] Mail 1 PDF → send → log appears
 - [ ] Mail 1 PDF → cancel → no log
+- [ ] Mail with missing email → warning shown → Mail opens with empty To
 - [ ] Free tier: Cannot generate with >10 selected recipients
 
 **Logs Tab:**
@@ -852,21 +891,20 @@ Pre-configured tasks in `.vscode/tasks.json`:
 #### Priority 1: Near-Term
 
 1. **Enhanced CSV Column Selection**
-   - **Description:** UI to dynamically select which CSV columns map to FirstName, LastName, Email
-   - **Current State:** Fixed column names expected
-   - **Implementation:** Update `CSVImporterView` with column picker
-   - **Files to Modify:** `CSVImporterView.swift`, `CSVService.swift`
+   - **Description:** UI to select which CSV column to use for recipient Email (Mail prefill)
+   - **Current State:** Implemented for Email only (auto-detects a single email-like header when possible)
+   - **Next:** Optional UI to map First/Last name columns when headers don’t match defaults
 
 2. **Custom Filename Format**
    - **Description:** User-configurable filename format with variables
    - **Format:** `{TemplateName}_{Last}_{First}_{YYYY-MM-DD}.pdf`
-   - **Current State:** Fixed format `{Template}_{FullName}.pdf`
+   - **Current State:** Fixed format `{Template}_{FullName}_{RecipientIDPrefix}.pdf` (sanitized + unique)
    - **Implementation:** Settings option + `DateFormatter` usage
    - **Files to Modify:** `GenerateView.swift`, `SettingsView.swift`, `AppState.swift`
 
 3. **Batch Generation Progress**
    - **Description:** Progress bar during PDF generation
-   - **Current State:** Generation runs on a background queue; UI stays responsive, but there is no progress indicator yet
+   - **Current State:** Generation runs on a background queue and shows a spinner overlay; no per-recipient progress yet
    - **Implementation:** Background task with progress updates
    - **Files to Modify:** `GenerateView.swift`, `PDFService.swift`
 
@@ -892,7 +930,7 @@ Pre-configured tasks in `.vscode/tasks.json`:
 
 7. **Advanced Mapping**
    - **Description:** Formulas, conditional logic, data transformation
-   - **Current State:** Direct 1:1 field mapping
+   - **Current State:** Supports direct mapping plus limited computed values (Initials/Today/Blank) and conservative auto-suggestions
    - **Implementation:** Expression evaluator
    - **Files to Modify:** `MapView.swift`, new `MappingEngine.swift`
 
@@ -1013,6 +1051,15 @@ Pre-configured tasks in `.vscode/tasks.json`:
 3. Ensure certificates and profiles valid
 4. Try Apple ID auth as fallback
 5. Check Fastlane logs for specific error
+
+#### Issue: Builds in Xcode, but Fastlane/CLI build fails
+
+**Cause:** A Swift file was added in the editor but not included in the Xcode target (Target Membership / project.pbxproj).
+
+**Solutions:**
+1. In Xcode: select the file → File Inspector → ensure the app target is checked
+2. Commit the updated `project.pbxproj`
+3. If you intentionally avoid adding new files, prefer placing small shared helpers into an existing compiled file that’s already in-target
 
 #### Issue: App Store Connect asks for Export Compliance (encryption)
 

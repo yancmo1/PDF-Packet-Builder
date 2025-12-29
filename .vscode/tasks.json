@@ -15,12 +15,25 @@
       "problemMatcher": []
     },
     {
+      "label": "Xcode: Clean DerivedData (PDFPacketBuilder)",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-lc",
+        "rm -rf \"$HOME/Library/Developer/Xcode/DerivedData/PDFPacketBuilder-\"*"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Fastlane: Tests",
       "type": "shell",
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane tests"
+        "set -a; [[ -f .env ]] && source .env; set +a; if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh 2>/dev/null)\" || true; fi; bundle exec fastlane tests"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -33,7 +46,7 @@
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane beta"
+        "set -a; [[ -f .env ]] && source .env; set +a; if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh 2>/dev/null)\" || true; fi; bundle exec fastlane beta"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -46,7 +59,7 @@
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane tf_status"
+        "set -a; [[ -f .env ]] && source .env; set +a; if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh 2>/dev/null)\" || true; fi; bundle exec fastlane tf_status"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -59,7 +72,7 @@
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane upload_metadata"
+        "set -a; [[ -f .env ]] && source .env; set +a; if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh 2>/dev/null)\" || true; fi; bundle exec fastlane upload_metadata"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -72,7 +85,7 @@
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane release"
+        "set -a; [[ -f .env ]] && source .env; set +a; if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh 2>/dev/null)\" || true; fi; bundle exec fastlane release"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -85,7 +98,7 @@
       "command": "zsh",
       "args": [
         "-lc",
-        "if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh)\" || { set -a; [[ -f .env ]] && source .env; set +a; }; else set -a; [[ -f .env ]] && source .env; set +a; fi; bundle exec fastlane release_full"
+        "set -a; [[ -f .env ]] && source .env; set +a; if command -v direnv >/dev/null 2>&1 && [[ -f .envrc ]]; then eval \"$(direnv export zsh 2>/dev/null)\" || true; fi; bundle exec fastlane release_full"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
