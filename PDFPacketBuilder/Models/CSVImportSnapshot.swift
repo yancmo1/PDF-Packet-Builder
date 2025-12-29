@@ -18,4 +18,5 @@ struct CSVFileReference: Codable, Hashable {
 struct CSVImportSnapshot: Codable, Hashable {
     var reference: CSVFileReference
     var headers: [String]
+    var normalizedHeaders: [NormalizedName]?
 }

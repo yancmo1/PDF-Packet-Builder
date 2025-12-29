@@ -52,19 +52,21 @@ class CSVService {
                     customFields[header] = value
                 }
             }
-            
-            // Only create recipient if email is present
-            if !email.isEmpty {
-                let recipient = Recipient(
-                    firstName: firstName,
-                    lastName: lastName,
-                    email: email,
-                    phoneNumber: phoneNumber,
-                    customFields: customFields,
-                    source: .csv
-                )
-                recipients.append(recipient)
-            }
+
+            // Create a recipient even if email is missing; mailing can be disabled / warned later.
+            // Avoid importing completely empty rows.
+            let hasAnyValue = !firstName.isEmpty || !lastName.isEmpty || !email.isEmpty || (phoneNumber?.isEmpty == false) || customFields.values.contains { !$0.isEmpty }
+            guard hasAnyValue else { continue }
+
+            let recipient = Recipient(
+                firstName: firstName,
+                lastName: lastName,
+                email: email,
+                phoneNumber: phoneNumber,
+                customFields: customFields,
+                source: .csv
+            )
+            recipients.append(recipient)
         }
         
         return recipients

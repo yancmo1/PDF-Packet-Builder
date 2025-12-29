@@ -17,6 +17,7 @@ struct CSVImportPreviewView: View {
     @State private var headers: [String] = []
     @State private var rows: [[String]] = []
     @State private var errorMessage: String?
+    @State private var showingNoEmailDetectedAlert = false
 
     private let csvService = CSVService()
     private let storageService = StorageService()
@@ -147,6 +148,11 @@ struct CSVImportPreviewView: View {
                         .shadow(radius: 10)
                 }
             }
+            .alert("No email column detected", isPresented: $showingNoEmailDetectedAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("No email column detected. You need to manually select email recipients.")
+            }
             .onAppear {
                 if let csvImport = appState.csvImport {
                     loadPreview(from: csvImport.reference.url, fileName: csvImport.reference.originalFileName)
@@ -164,11 +170,26 @@ struct CSVImportPreviewView: View {
                 let reference = try storageService.importCSVToDocuments(from: url)
                 let csvText = try String(contentsOf: reference.url, encoding: .utf8)
                 let preview = csvService.parsePreview(data: csvText, maxRows: 20)
+                let recipients = csvService.parseCSV(data: csvText)
 
-                let snapshot = CSVImportSnapshot(reference: reference, headers: preview.headers)
+                let normalized = preview.headers.map { NormalizedName.from($0) }
+                let snapshot = CSVImportSnapshot(reference: reference, headers: preview.headers, normalizedHeaders: normalized)
 
                 DispatchQueue.main.async {
                     appState.saveCSVImport(snapshot)
+
+                    // Replace previously CSV-imported recipients, but keep manual/contacts.
+                    let preserved = appState.recipients.filter { $0.source != .csv }
+                    appState.saveRecipients(preserved + recipients)
+
+                    // Auto-select a CSV email column if we can detect exactly one.
+                    if let detected = detectEmailHeader(headers: snapshot.headers, normalizedHeaders: snapshot.normalizedHeaders) {
+                        appState.saveCSVEmailColumn(detected)
+                    } else {
+                        appState.saveCSVEmailColumn(nil)
+                        showingNoEmailDetectedAlert = true
+                    }
+
                     fileName = reference.originalFileName
                     headers = preview.headers
                     rows = preview.rows
@@ -181,6 +202,27 @@ struct CSVImportPreviewView: View {
                 }
             }
         }
+    }
+
+    private func detectEmailHeader(headers: [String], normalizedHeaders: [NormalizedName]?) -> String? {
+        let normalized = normalizedHeaders ?? headers.map { NormalizedName.from($0) }
+        var candidates: [String] = []
+        candidates.reserveCapacity(headers.count)
+
+        for (idx, header) in headers.enumerated() {
+            let trimmed = header.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            guard idx < normalized.count else { continue }
+            if normalized[idx].hint == .email {
+                candidates.append(trimmed)
+            }
+        }
+
+        let unique = Array(Set(candidates))
+        if unique.count == 1 {
+            return unique[0]
+        }
+        return nil
     }
 
     private func loadPreview(from url: URL, fileName: String) {

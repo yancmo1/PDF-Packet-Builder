@@ -50,13 +50,46 @@ struct Recipient: Codable, Identifiable, Hashable {
     
     // Get value for a specific field key
     func value(forKey key: String) -> String? {
-        switch key.lowercased() {
-        case "firstname": return firstName
-        case "lastname": return lastName
-        case "fullname", "name": return fullName
-        case "email": return email
-        case "phone", "phonenumber": return phoneNumber
-        default: return customFields[key]
+        let raw = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = raw.lowercased()
+
+        // Built-in aliases (supports common CSV header variations too).
+        switch lower {
+        case "firstname", "first_name", "first name", "givenname", "given_name", "given name":
+            return firstName
+        case "lastname", "last_name", "last name", "surname", "familyname", "family_name", "family name":
+            return lastName
+        case "fullname", "full_name", "full name", "name":
+            return fullName
+        case "email", "emailaddress", "email_address", "email address", "e-mail", "e-mailaddress", "e-mail address":
+            return email
+        case "phone", "phonenumber", "phone_number", "phone number", "mobile", "tel", "telephone":
+            return phoneNumber
+        default:
+            break
         }
+
+        // Exact match (preserves predictability when mapping to a specific custom header).
+        if let exact = customFields[raw] {
+            return exact
+        }
+
+        // Deterministic case-insensitive match (only if unique).
+        let caseInsensitiveMatches = customFields.filter { $0.key.lowercased() == lower }
+        if caseInsensitiveMatches.count == 1 {
+            return caseInsensitiveMatches.first?.value
+        }
+
+        // Normalized match (only if unique) to support headers like "Date 1" -> "Date".
+        let target = NormalizedName.from(raw).tokenSet
+        if !target.isEmpty {
+            let normalizedMatches = customFields.keys.filter { NormalizedName.from($0).tokenSet == target }
+            if normalizedMatches.count == 1 {
+                return customFields[normalizedMatches[0]]
+            }
+        }
+
+        // Ambiguous or missing.
+        return nil
     }
 }

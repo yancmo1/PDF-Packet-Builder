@@ -25,7 +25,8 @@ class PDFService {
                     let field = PDFField(
                         name: fieldName,
                         type: determineFieldType(annotation),
-                        defaultValue: annotation.widgetStringValue
+                        defaultValue: annotation.widgetStringValue,
+                        normalized: NormalizedName.from(fieldName)
                     )
                     fields.append(field)
                 }
@@ -60,8 +61,10 @@ class PDFService {
             let annotations = page.annotations
             for annotation in annotations {
                 if let fieldName = annotation.fieldName,
-                   let mapping = template.fieldMappings[fieldName],
-                   let value = recipient.value(forKey: mapping) {
+                   let mapping = template.fieldMappings[fieldName] {
+
+                    let value: String? = resolveMappedValue(mapping, recipient: recipient)
+                    guard let value else { continue }
                     
                     // Set the field value
                     annotation.setValue(value, forAnnotationKey: .widgetValue)
@@ -72,6 +75,33 @@ class PDFService {
         
         // Return the modified PDF data
         return documentCopy.dataRepresentation()
+    }
+
+    private func resolveMappedValue(_ mapping: String, recipient: Recipient) -> String? {
+        switch mapping {
+        case ComputedMappingValue.blank.rawValue:
+            return ""
+        case ComputedMappingValue.today.rawValue:
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = TimeZone.current
+            formatter.dateFormat = "MM-dd-yy"
+            return formatter.string(from: Date())
+        case ComputedMappingValue.initials.rawValue:
+            return initials(for: recipient)
+        default:
+            return recipient.value(forKey: mapping)
+        }
+    }
+
+    private func initials(for recipient: Recipient) -> String {
+        let first = recipient.firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let last = recipient.lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let firstInitial = first.first.map { String($0).uppercased() } ?? ""
+        let lastInitial = last.first.map { String($0).uppercased() } ?? ""
+
+        return (firstInitial + lastInitial).trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     // Flatten PDF (make fields non-editable)

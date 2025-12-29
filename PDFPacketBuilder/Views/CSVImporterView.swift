@@ -17,8 +17,10 @@ struct CSVImporterView: View {
     @State private var isProcessing = false
     @State private var showingImportError = false
     @State private var importErrorMessage: String?
+    @State private var showingNoEmailDetectedAlert = false
     
     private let csvService = CSVService()
+    private let storageService = StorageService()
     
     var body: some View {
         NavigationView {
@@ -36,7 +38,7 @@ struct CSVImporterView: View {
                         Text("Select a CSV file with recipient data")
                             .foregroundColor(.secondary)
                         
-                        Text("Required columns: Email\nOptional: FirstName, LastName, Phone")
+                        Text("Recommended columns: Email\nOptional: FirstName, LastName, Phone")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -110,6 +112,11 @@ struct CSVImporterView: View {
             } message: {
                 Text(importErrorMessage ?? "Unable to import the file.")
             }
+            .alert("No email column detected", isPresented: $showingNoEmailDetectedAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("No email column detected. You need to manually select email recipients.")
+            }
         }
     }
     
@@ -118,11 +125,34 @@ struct CSVImporterView: View {
         
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                let csvText = try String(contentsOf: url, encoding: .utf8)
+                let reference = try storageService.importCSVToDocuments(from: url)
+                let csvText = try String(contentsOf: reference.url, encoding: .utf8)
+
                 let recipients = csvService.parseCSV(data: csvText)
+                let preview = csvService.parsePreview(data: csvText, maxRows: 1)
+                let snapshot = CSVImportSnapshot(
+                    reference: reference,
+                    headers: preview.headers,
+                    normalizedHeaders: preview.headers.map { NormalizedName.from($0) }
+                )
                 
                 DispatchQueue.main.async {
                     self.importedRecipients = recipients
+                    appState.saveCSVImport(snapshot)
+
+                    // Also load recipients immediately so Generate can use them without extra steps.
+                    // Keep manual/contacts recipients, replace any prior CSV recipients.
+                    let preserved = appState.recipients.filter { $0.source != .csv }
+                    appState.saveRecipients(preserved + recipients)
+
+                    // Default the email-column picker when possible.
+                    if let detected = detectEmailHeader(headers: snapshot.headers, normalizedHeaders: snapshot.normalizedHeaders) {
+                        appState.saveCSVEmailColumn(detected)
+                    } else {
+                        appState.saveCSVEmailColumn(nil)
+                        showingNoEmailDetectedAlert = true
+                    }
+
                     self.isProcessing = false
                 }
             } catch {
@@ -137,10 +167,29 @@ struct CSVImporterView: View {
     }
     
     private func importRecipients() {
-        var allRecipients = appState.recipients
-        allRecipients.append(contentsOf: importedRecipients)
-        appState.saveRecipients(allRecipients)
+        // Recipients are already loaded on select; keep this as a no-op except dismiss.
         dismiss()
+    }
+
+    private func detectEmailHeader(headers: [String], normalizedHeaders: [NormalizedName]?) -> String? {
+        let normalized = normalizedHeaders ?? headers.map { NormalizedName.from($0) }
+        var candidates: [String] = []
+        candidates.reserveCapacity(headers.count)
+
+        for (idx, header) in headers.enumerated() {
+            let trimmed = header.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            guard idx < normalized.count else { continue }
+            if normalized[idx].hint == .email {
+                candidates.append(trimmed)
+            }
+        }
+
+        let unique = Array(Set(candidates))
+        if unique.count == 1 {
+            return unique[0]
+        }
+        return nil
     }
 
     private func handlePickerFailure(_ error: Error) {
