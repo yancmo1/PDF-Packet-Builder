@@ -14,6 +14,7 @@ struct GenerateView: View {
     @State private var showingShareSheet = false
     @State private var currentShareItem: ShareItem?
     @State private var currentMailItem: MailItem?
+    @State private var currentPreviewItem: PreviewItem?
     @State private var showingPaywall = false
     @State private var showingMailUnavailableAlert = false
     @State private var showingMailFailedAlert = false
@@ -248,6 +249,23 @@ struct GenerateView: View {
                                                 }
                                             }
                                             Spacer()
+
+                                            // Preview button (Free)
+                                            Button {
+                                                currentPreviewItem = PreviewItem(
+                                                    recipientName: displayName(for: item.recipient),
+                                                    templateName: appState.pdfTemplate?.name ?? "document",
+                                                    pdfData: item.pdfData
+                                                )
+                                            } label: {
+                                                Label("Preview", systemImage: "eye")
+                                                    .font(.caption)
+                                                    .padding(.horizontal, 10)
+                                                    .padding(.vertical, 6)
+                                                    .background(Color(.systemGray4))
+                                                    .foregroundColor(.primary)
+                                                    .cornerRadius(6)
+                                            }
                                             
                                             // Mail button
                                             Button(action: {
@@ -339,6 +357,13 @@ struct GenerateView: View {
                         // Log the send only after successful share
                         logSend(recipientName: item.recipientName, templateName: item.templateName, fileName: item.fileName, method: .share)
                     }
+                }
+            }
+            .sheet(item: $currentPreviewItem) { item in
+                NavigationView {
+                    PDFPreviewView(pdfData: item.pdfData)
+                        .navigationTitle(item.title)
+                        .navigationBarTitleDisplayMode(.inline)
                 }
             }
             .sheet(item: $currentMailItem) { mailItem in
@@ -922,6 +947,17 @@ struct ShareItem: Identifiable {
     let recipientName: String
     let templateName: String
     let fileName: String
+}
+
+struct PreviewItem: Identifiable {
+    let id = UUID()
+    let recipientName: String
+    let templateName: String
+    let pdfData: Data
+
+    var title: String {
+        "\(templateName) • \(recipientName)"
+    }
 }
 
 struct MailItem: Identifiable {
