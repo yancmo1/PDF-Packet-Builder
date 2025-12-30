@@ -1,0 +1,85 @@
+%PDF-1.4
+%PDFPacketBuilderSample
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/AcroForm 6 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+  /Font << /Helv 5 0 R >>
+>>
+/Contents 4 0 R
+/Annots [7 0 R]
+>>
+endobj
+4 0 obj
+<< /Length 94 >>
+stream
+BT
+/Helv 18 Tf
+100 740 Td
+(Sample Packet) Tj
+ET
+
+BT
+/Helv 12 Tf
+100 720 Td
+(Full Name:) Tj
+ET
+endstream
+endobj
+5 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+6 0 obj
+<<
+/Fields [7 0 R]
+/NeedAppearances true
+>>
+endobj
+7 0 obj
+<<
+/Type /Annot
+/Subtype /Widget
+/FT /Tx
+/T (FullName)
+/Rect [180 712 420 734]
+/V ()
+/DA (/Helv 12 Tf 0 g)
+/F 4
+/P 3 0 R
+>>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000033 00000 n 
+0000000098 00000 n 
+0000000155 00000 n 
+0000000301 00000 n 
+0000000444 00000 n 
+0000000514 00000 n 
+0000000573 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+712
+%%EOF

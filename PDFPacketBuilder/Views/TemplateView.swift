@@ -225,7 +225,7 @@ struct TemplateView: View {
                 let templateID = UUID()
                 let relativePath = storageService.saveTemplatePDFData(data, templateID: templateID)
 
-                var template = PDFTemplate(
+                let template = PDFTemplate(
                     id: templateID,
                     name: fileName,
                     pdfFilePath: relativePath,

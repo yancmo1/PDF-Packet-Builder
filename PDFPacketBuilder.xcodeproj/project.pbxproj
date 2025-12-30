@@ -16,6 +16,14 @@
 		5DEE8681E1204BCB8A76D073 /* PDFTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D87B8696134640B767EED4 /* PDFTemplate.swift */; };
 		60A8BA1AF9AF40F19620645F /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9F9ADA768E1420F8C6582EC /* AppState.swift */; };
 		66FBC06A51784DD28FBF9F4F /* DocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C51E955181164807B5629060 /* DocumentPicker.swift */; };
+		BBCCDDEE0011223344556677 /* MessageTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABBCCDD0011223344556677 /* MessageTemplate.swift */; };
+		BBCCDDEE0011223344556678 /* MessageTemplateRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABBCCDD0011223344556678 /* MessageTemplateRenderer.swift */; };
+		BBCCDDEE0011223344556679 /* MessageTemplateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABBCCDD0011223344556679 /* MessageTemplateService.swift */; };
+		BBCCDDEE0011223344556680 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABBCCDD0011223344556680 /* ExportService.swift */; };
+		BBCCDDEE0011223344556681 /* SamplePackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABBCCDD0011223344556681 /* SamplePackService.swift */; };
+		BBCCDDEE0011223344556682 /* FolderPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABBCCDD0011223344556682 /* FolderPicker.swift */; };
+		BBCCDDEE0011223344556683 /* SampleRecipients.csv in Resources */ = {isa = PBXBuildFile; fileRef = AABBCCDD0011223344556683 /* SampleRecipients.csv */; };
+		BBCCDDEE0011223344556684 /* SampleTemplate.pdf in Resources */ = {isa = PBXBuildFile; fileRef = AABBCCDD0011223344556684 /* SampleTemplate.pdf */; };
 		6761DB695CBA4AC5B88279FD /* CSVImporterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 433575B885F14E1DAD777496 /* CSVImporterView.swift */; };
 		690B7BF56FE4459A9C633D1B /* PDFPacketBuilderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40D2473C6B641A794756B80 /* PDFPacketBuilderApp.swift */; };
 		7502426A7E564208BB0B78F8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1FEBA768BBE14DB58F04E545 /* Assets.xcassets */; };
@@ -46,6 +54,14 @@
 		109B03007A5A493ABA92DB74 /* SendLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLog.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F7A8B9C0D1E2F /* MailComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailComposer.swift; sourceTree = "<group>"; };
 		1FEBA768BBE14DB58F04E545 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AABBCCDD0011223344556677 /* MessageTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageTemplate.swift; sourceTree = "<group>"; };
+		AABBCCDD0011223344556678 /* MessageTemplateRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageTemplateRenderer.swift; sourceTree = "<group>"; };
+		AABBCCDD0011223344556679 /* MessageTemplateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageTemplateService.swift; sourceTree = "<group>"; };
+		AABBCCDD0011223344556680 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
+		AABBCCDD0011223344556681 /* SamplePackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SamplePackService.swift; sourceTree = "<group>"; };
+		AABBCCDD0011223344556682 /* FolderPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderPicker.swift; sourceTree = "<group>"; };
+		AABBCCDD0011223344556683 /* SampleRecipients.csv */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SampleRecipients.csv; sourceTree = "<group>"; };
+		AABBCCDD0011223344556684 /* SampleTemplate.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = SampleTemplate.pdf; sourceTree = "<group>"; };
 		22534FB84A4D42A2B8598F83 /* GenerateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerateView.swift; sourceTree = "<group>"; };
 		327649FEC022494B9D51CA31 /* PDFPacketBuilder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PDFPacketBuilder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C0787767A8E4717BFDC95D5 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
@@ -117,6 +133,7 @@
 				5ACADE9D507B4EA9B24CAFC9 /* Recipient.swift */,
 				109B03007A5A493ABA92DB74 /* SendLog.swift */,
 				8B9D1C2E4D6F4A1BB8C2D3E4 /* CSVImportSnapshot.swift */,
+				AABBCCDD0011223344556677 /* MessageTemplate.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -125,6 +142,7 @@
 			isa = PBXGroup;
 			children = (
 				C51E955181164807B5629060 /* DocumentPicker.swift */,
+				AABBCCDD0011223344556682 /* FolderPicker.swift */,
 				A038FD6608C341CCBBACC185 /* ShareSheet.swift */,
 				1A2B3C4D5E6F7A8B9C0D1E2F /* MailComposer.swift */,
 				A11C0A9D1E7E4A33B8F6A2D1 /* AutoMapping.swift */,
@@ -153,6 +171,8 @@
 			children = (
 				6B2A8D3BF1964936840B944A /* Info.plist */,
 				1FEBA768BBE14DB58F04E545 /* Assets.xcassets */,
+				AABBCCDD0011223344556683 /* SampleRecipients.csv */,
+				AABBCCDD0011223344556684 /* SampleTemplate.pdf */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -188,6 +208,10 @@
 				689695FBF50F4083933E6418 /* CSVService.swift */,
 				3C0787767A8E4717BFDC95D5 /* StorageService.swift */,
 				CE609F537AF143E0826AF948 /* ContactsService.swift */,
+				AABBCCDD0011223344556680 /* ExportService.swift */,
+				AABBCCDD0011223344556678 /* MessageTemplateRenderer.swift */,
+				AABBCCDD0011223344556679 /* MessageTemplateService.swift */,
+				AABBCCDD0011223344556681 /* SamplePackService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -251,6 +275,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				7502426A7E564208BB0B78F8 /* Assets.xcassets in Resources */,
+				BBCCDDEE0011223344556683 /* SampleRecipients.csv in Resources */,
+				BBCCDDEE0011223344556684 /* SampleTemplate.pdf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -264,6 +290,7 @@
 				690B7BF56FE4459A9C633D1B /* PDFPacketBuilderApp.swift in Sources */,
 				60A8BA1AF9AF40F19620645F /* AppState.swift in Sources */,
 				5DEE8681E1204BCB8A76D073 /* PDFTemplate.swift in Sources */,
+				BBCCDDEE0011223344556677 /* MessageTemplate.swift in Sources */,
 				554E2E1412EA4CF19E6AC9D1 /* Recipient.swift in Sources */,
 				BDDB00F92D49418F9C8E1B1E /* SendLog.swift in Sources */,
 				0C2B1C9E8C6E4C9BB2D7C9B2 /* CSVImportSnapshot.swift in Sources */,
@@ -285,7 +312,12 @@
 				F1C5E32305C240AFBECB0BAA /* CSVService.swift in Sources */,
 				D45B92F8B4AD451C8BC1AA3E /* StorageService.swift in Sources */,
 				9DDF5BFF7249460098AE4D95 /* ContactsService.swift in Sources */,
+				BBCCDDEE0011223344556680 /* ExportService.swift in Sources */,
+				BBCCDDEE0011223344556678 /* MessageTemplateRenderer.swift in Sources */,
+				BBCCDDEE0011223344556679 /* MessageTemplateService.swift in Sources */,
+				BBCCDDEE0011223344556681 /* SamplePackService.swift in Sources */,
 				66FBC06A51784DD28FBF9F4F /* DocumentPicker.swift in Sources */,
+				BBCCDDEE0011223344556682 /* FolderPicker.swift in Sources */,
 				973FC9075488419987CACFF1 /* ShareSheet.swift in Sources */,
 				9A1B2C3D4E5F6A7B8C9D0E1F /* MailComposer.swift in Sources */,
 				A11C0A9E1E7E4A33B8F6A2D1 /* AutoMapping.swift in Sources */,

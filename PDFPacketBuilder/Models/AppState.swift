@@ -153,6 +153,34 @@ class AppState: ObservableObject {
         self.pdfTemplate = newTemplate
         storageService.saveTemplate(newTemplate)
     }
+
+    /// Clears all user data (template, recipients, CSV import state, and logs).
+    ///
+    /// Used for reviewer/sample flows where we want a predictable starting state.
+    /// - Important: Callers should prompt for confirmation before invoking.
+    func clearAllData() {
+        if let existing = pdfTemplate {
+            storageService.deleteTemplatePDF(for: existing)
+        }
+
+        self.pdfTemplate = nil
+        storageService.saveTemplate(nil)
+
+        self.recipients = []
+        storageService.saveRecipients([])
+
+        self.csvImport = nil
+        storageService.clearCSVImport()
+
+        self.csvEmailColumn = nil
+        storageService.saveCSVEmailColumn(nil)
+
+        self.csvDisplayNameColumn = nil
+        storageService.saveCSVDisplayNameColumn(nil)
+
+        self.sendLogs = []
+        storageService.saveLogs([])
+    }
     
     private func clearMappingAndHistory() {
         // Clear recipients (CSV snapshot)
