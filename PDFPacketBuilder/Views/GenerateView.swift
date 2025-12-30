@@ -477,7 +477,11 @@ struct GenerateView: View {
                 }
             }
             .sheet(item: $currentExportBundle) { bundle in
-                ShareSheet(items: [bundle.url])
+                ShareSheet(items: [bundle.shareURL]) { completed in
+                    if completed {
+                        cleanupExportArtifacts(bundle)
+                    }
+                }
             }
             .sheet(item: $currentMailItem) { mailItem in
                 MailComposer(
@@ -1038,17 +1042,34 @@ struct GenerateView: View {
         }
 
         // Prefer sharing a ZIP for better compatibility across share targets.
-        let zipURL = tempRoot.appendingPathComponent(rootName).appendingPathExtension("zip")
-        do {
-            if fm.fileExists(atPath: zipURL.path) {
-                try fm.removeItem(at: zipURL)
-            }
+        // If unavailable (older iOS), or if zipping fails, fall back to sharing the folder.
+        if #available(iOS 16.0, *) {
+            let zipURL = tempRoot.appendingPathComponent(rootName).appendingPathExtension("zip")
+            do {
+                if fm.fileExists(atPath: zipURL.path) {
+                    try fm.removeItem(at: zipURL)
+                }
 
-            // If zip creation fails for any reason, fall back to sharing the folder.
-            try fm.zipItem(at: rootURL, to: zipURL)
-            currentExportBundle = ExportBundle(url: zipURL)
-        } catch {
-            currentExportBundle = ExportBundle(url: rootURL)
+                try fm.zipItem(at: rootURL, to: zipURL)
+                currentExportBundle = ExportBundle(shareURL: zipURL, cleanupURLs: [zipURL, rootURL])
+            } catch {
+                currentExportBundle = ExportBundle(shareURL: rootURL, cleanupURLs: [rootURL])
+            }
+        } else {
+            currentExportBundle = ExportBundle(shareURL: rootURL, cleanupURLs: [rootURL])
+        }
+    }
+
+    private func cleanupExportArtifacts(_ bundle: ExportBundle) {
+        let fm = FileManager.default
+        for url in bundle.cleanupURLs {
+            do {
+                if fm.fileExists(atPath: url.path) {
+                    try fm.removeItem(at: url)
+                }
+            } catch {
+                // Best-effort cleanup only.
+            }
         }
     }
 
@@ -1431,7 +1452,8 @@ struct ShareItem: Identifiable {
 
 struct ExportBundle: Identifiable {
     let id = UUID()
-    let url: URL
+    let shareURL: URL
+    let cleanupURLs: [URL]
 }
 
 struct MailItem: Identifiable {

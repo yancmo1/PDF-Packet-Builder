@@ -115,3 +115,6 @@ iOSInjectionProject/
 *.moved-aside
 *.swp
 *~.nib
+
+# Local diff artifacts
+checkpoint.diff
