@@ -25,21 +25,81 @@ class StorageService {
     private let senderNameKey = "senderName"
     private let senderEmailKey = "senderEmail"
     
+    // MARK: - Template PDF File Storage
+    
+    private func getTemplatesDirectory() -> URL {
+        let dir = getDocumentsDirectory()
+            .appendingPathComponent("Templates", isDirectory: true)
+        if !fileManager.fileExists(atPath: dir.path) {
+            try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        return dir
+    }
+    
+    func saveTemplatePDF(data: Data, templateID: UUID) -> String? {
+        let filename = "\(templateID.uuidString).pdf"
+        let url = getTemplatesDirectory().appendingPathComponent(filename)
+        do {
+            try data.write(to: url, options: [.atomic])
+            return url.path
+        } catch {
+            print("Error saving template PDF to disk: \(error)")
+            return nil
+        }
+    }
+    
+    func loadTemplatePDF(from path: String) -> Data? {
+        let url = URL(fileURLWithPath: path)
+        return try? Data(contentsOf: url)
+    }
+    
+    func deleteTemplatePDF(at path: String) {
+        let url = URL(fileURLWithPath: path)
+        try? fileManager.removeItem(at: url)
+    }
+    
     // MARK: - Template Storage
     
     func saveTemplate(_ template: PDFTemplate?) {
-        if let template = template {
-            if let encoded = try? JSONEncoder().encode(template) {
-                defaults.set(encoded, forKey: templateKey)
+        guard let template = template else {
+            // Remove old PDF file if it exists
+            if let existing = loadTemplate(), let path = existing.pdfFilePath {
+                deleteTemplatePDF(at: path)
             }
-        } else {
             defaults.removeObject(forKey: templateKey)
+            return
+        }
+        
+        var templateToSave = template
+        
+        // If template has no file path but has PDF data, write to disk first
+        if template.pdfFilePath == nil, let pdfData = template.pdfData {
+            if let path = saveTemplatePDF(data: pdfData, templateID: template.id) {
+                templateToSave = template.withFilePath(path)
+            }
+        }
+        
+        if let encoded = try? JSONEncoder().encode(templateToSave) {
+            defaults.set(encoded, forKey: templateKey)
         }
     }
     
     func loadTemplate() -> PDFTemplate? {
         guard let data = defaults.data(forKey: templateKey) else { return nil }
-        return try? JSONDecoder().decode(PDFTemplate.self, from: data)
+        guard var template = try? JSONDecoder().decode(PDFTemplate.self, from: data) else { return nil }
+        
+        // Migration: if template has legacy embedded data but no file path, migrate to disk
+        if template.needsMigration, let legacyData = template.legacyDataForMigration {
+            if let path = saveTemplatePDF(data: legacyData, templateID: template.id) {
+                template = template.withFilePath(path)
+                // Re-save to persist the migration
+                if let encoded = try? JSONEncoder().encode(template) {
+                    defaults.set(encoded, forKey: templateKey)
+                }
+            }
+        }
+        
+        return template
     }
     
     // MARK: - Recipients Storage

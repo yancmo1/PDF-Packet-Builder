@@ -49,7 +49,8 @@ class PDFService {
     
     // Generate personalized PDF for a recipient
     func generatePersonalizedPDF(template: PDFTemplate, recipient: Recipient) -> Data? {
-        guard let pdfDocument = PDFDocument(data: template.pdfData) else { return nil }
+        guard let pdfData = template.pdfData,
+              let pdfDocument = PDFDocument(data: pdfData) else { return nil }
         
         // Create a copy of the document
         guard let documentCopy = pdfDocument.copy() as? PDFDocument else { return nil }

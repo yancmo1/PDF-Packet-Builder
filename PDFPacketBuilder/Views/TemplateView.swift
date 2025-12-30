@@ -27,10 +27,21 @@ struct TemplateView: View {
                     ScrollView {
                         VStack(spacing: 20) {
                             // PDF Preview
-                            PDFPreviewView(pdfData: template.pdfData)
+                            if let pdfData = template.pdfData {
+                                PDFPreviewView(pdfData: pdfData)
+                                    .frame(height: 300)
+                                    .cornerRadius(10)
+                                    .shadow(radius: 5)
+                            } else {
+                                VStack {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(.orange)
+                                    Text("PDF file not found")
+                                        .foregroundColor(.secondary)
+                                }
                                 .frame(height: 300)
-                                .cornerRadius(10)
-                                .shadow(radius: 5)
+                            }
                             
                             Text(template.name)
                                 .font(.title2)

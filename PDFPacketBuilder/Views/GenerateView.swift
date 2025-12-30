@@ -33,6 +33,8 @@ struct GenerateView: View {
     @State private var showingNoEmailForRowAlert = false
     @State private var showingExportErrorAlert = false
     @State private var exportErrorMessage: String = ""
+    @State private var previewPDFData: Data? = nil
+    @State private var showingPDFPreview = false
 
     @State private var statusFilter: StatusFilter = .all
 
@@ -378,6 +380,20 @@ struct GenerateView: View {
                                             }
                                             Spacer()
                                             
+                                            // Preview button
+                                            Button(action: {
+                                                previewPDFData = item.pdfData
+                                                showingPDFPreview = true
+                                            }) {
+                                                Image(systemName: "eye")
+                                                    .font(.caption)
+                                                    .padding(.horizontal, 8)
+                                                    .padding(.vertical, 6)
+                                                    .background(Color.purple)
+                                                    .foregroundColor(.white)
+                                                    .cornerRadius(6)
+                                            }
+                                            
                                             // Mail button
                                             Button(action: {
                                                 sendMail(item)
@@ -505,6 +521,23 @@ struct GenerateView: View {
             }
             .sheet(isPresented: $showingPaywall) {
                 PurchaseView()
+            }
+            .sheet(isPresented: $showingPDFPreview) {
+                if let pdfData = previewPDFData {
+                    NavigationView {
+                        PDFPreviewView(pdfData: pdfData)
+                            .navigationTitle("Preview")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar {
+                                ToolbarItem(placement: .confirmationAction) {
+                                    Button("Done") {
+                                        showingPDFPreview = false
+                                        previewPDFData = nil
+                                    }
+                                }
+                            }
+                    }
+                }
             }
             .alert("Limit reached", isPresented: $showingRecipientLimitAlert) {
                 Button("OK", role: .cancel) { }
