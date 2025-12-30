@@ -6,14 +6,6 @@
 import SwiftUI
 import MessageUI
 
-private func clampNSRange(_ range: NSRange, in text: String) -> NSRange {
-    let length = (text as NSString).length
-    let loc = min(max(0, range.location), length)
-    let maxLen = max(0, length - loc)
-    let len = min(max(0, range.length), maxLen)
-    return NSRange(location: loc, length: len)
-}
-
 struct GenerateView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var iapManager: IAPManager
@@ -60,128 +52,6 @@ struct GenerateView: View {
     private enum MessageTemplateFocus: Hashable {
         case subject
         case body
-    }
-
-    private struct CursorAwareTextField: UIViewRepresentable {
-        @Binding var text: String
-        @Binding var selection: NSRange
-        var placeholder: String
-        var onBeginEditing: (() -> Void)?
-
-        func makeUIView(context: Context) -> UITextField {
-            let field = UITextField(frame: .zero)
-            field.borderStyle = .roundedRect
-            field.placeholder = placeholder
-            field.autocapitalizationType = .sentences
-            field.autocorrectionType = .default
-            field.addTarget(context.coordinator, action: #selector(Coordinator.textDidChange), for: .editingChanged)
-            field.delegate = context.coordinator
-            return field
-        }
-
-        func updateUIView(_ uiView: UITextField, context: Context) {
-            if uiView.text != text {
-                uiView.text = text
-            }
-
-            // Apply selection when this field is currently focused.
-            guard uiView.isFirstResponder else { return }
-            let clamped = clampNSRange(selection, in: text)
-            if let start = uiView.position(from: uiView.beginningOfDocument, offset: clamped.location),
-               let end = uiView.position(from: start, offset: clamped.length),
-               let range = uiView.textRange(from: start, to: end) {
-                uiView.selectedTextRange = range
-            }
-        }
-
-        func makeCoordinator() -> Coordinator {
-            Coordinator(self)
-        }
-
-        final class Coordinator: NSObject, UITextFieldDelegate {
-            private let parent: CursorAwareTextField
-
-            init(_ parent: CursorAwareTextField) {
-                self.parent = parent
-            }
-
-            func textFieldDidBeginEditing(_ textField: UITextField) {
-                parent.onBeginEditing?()
-                updateSelection(from: textField)
-            }
-
-            func textFieldDidChangeSelection(_ textField: UITextField) {
-                updateSelection(from: textField)
-            }
-
-            @objc func textDidChange(_ textField: UITextField) {
-                parent.text = textField.text ?? ""
-                updateSelection(from: textField)
-            }
-
-            private func updateSelection(from textField: UITextField) {
-                guard let range = textField.selectedTextRange else { return }
-                let start = textField.offset(from: textField.beginningOfDocument, to: range.start)
-                let end = textField.offset(from: textField.beginningOfDocument, to: range.end)
-                parent.selection = NSRange(location: max(0, start), length: max(0, end - start))
-            }
-        }
-    }
-
-    private struct CursorAwareTextView: UIViewRepresentable {
-        @Binding var text: String
-        @Binding var selection: NSRange
-        var onBeginEditing: (() -> Void)?
-
-        func makeUIView(context: Context) -> UITextView {
-            let view = UITextView(frame: .zero)
-            view.isScrollEnabled = true
-            view.backgroundColor = .systemBackground
-            view.font = UIFont.preferredFont(forTextStyle: .body)
-            view.delegate = context.coordinator
-            view.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4)
-            view.layer.cornerRadius = 8
-            view.layer.masksToBounds = true
-            return view
-        }
-
-        func updateUIView(_ uiView: UITextView, context: Context) {
-            if uiView.text != text {
-                uiView.text = text
-            }
-
-            // Apply selection when this view is currently focused.
-            guard uiView.isFirstResponder else { return }
-            let clamped = clampNSRange(selection, in: text)
-            if uiView.selectedRange != clamped {
-                uiView.selectedRange = clamped
-            }
-        }
-
-        func makeCoordinator() -> Coordinator {
-            Coordinator(self)
-        }
-
-        final class Coordinator: NSObject, UITextViewDelegate {
-            private let parent: CursorAwareTextView
-
-            init(_ parent: CursorAwareTextView) {
-                self.parent = parent
-            }
-
-            func textViewDidBeginEditing(_ textView: UITextView) {
-                parent.onBeginEditing?()
-                parent.selection = textView.selectedRange
-            }
-
-            func textViewDidChange(_ textView: UITextView) {
-                parent.text = textView.text
-            }
-
-            func textViewDidChangeSelection(_ textView: UITextView) {
-                parent.selection = textView.selectedRange
-            }
-        }
     }
 
     private enum StatusFilter: String, CaseIterable, Identifiable {
@@ -1328,7 +1198,7 @@ struct GenerateView: View {
         }
 
         // CSV recipients often store a single full-name column in customFields.
-        if recipient.source == .csv, let fallback = bestNameFromCustomFields(recipient) {
+        if recipient.source == .csv, let fallback = NameScoring.bestNameFromCustomFields(recipient.customFields) {
             return fallback
         }
 
@@ -1338,59 +1208,6 @@ struct GenerateView: View {
         }
 
         return "Recipient"
-    }
-
-    private func bestNameFromCustomFields(_ recipient: Recipient) -> String? {
-        let candidates: [(value: String, score: Double)] = recipient.customFields.compactMap { key, value in
-            let v = value.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !v.isEmpty else { return nil }
-            guard !v.contains("@") else { return nil }
-
-            let tokens = Set(NormalizedName.from(key).tokens)
-            if tokens.contains("email") || tokens.contains("phone") || tokens.contains("date") {
-                return nil
-            }
-
-            var s: Double = 0.0
-            if tokens.contains("name") { s += 0.6 }
-            if tokens.contains("student") || tokens.contains("parent") || tokens.contains("guardian") { s += 0.2 }
-            if tokens.contains("team") || tokens.contains("club") || tokens.contains("org") || tokens.contains("organization") { s -= 0.4 }
-
-            // Value-shape bonus.
-            s += personNameScore(v) * 0.6
-            return (v, s)
-        }
-
-        guard let best = candidates.max(by: { $0.score < $1.score }), best.score >= 0.75 else {
-            return nil
-        }
-        return best.value
-    }
-
-    private func personNameScore(_ raw: String) -> Double {
-        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if value.isEmpty { return 0.0 }
-        if value.contains("@") { return 0.0 }
-
-        let digitCount = value.unicodeScalars.filter { CharacterSet.decimalDigits.contains($0) }.count
-        if digitCount > 0 { return 0.0 }
-
-        let words = value
-            .replacingOccurrences(of: ",", with: " ")
-            .split(whereSeparator: { $0.isWhitespace })
-
-        if words.isEmpty { return 0.0 }
-        if words.count > 5 { return 0.20 }
-
-        let letterCount = value.unicodeScalars.filter { CharacterSet.letters.contains($0) }.count
-        let scalarCount = max(1, value.unicodeScalars.count)
-        let letterRatio = Double(letterCount) / Double(scalarCount)
-        if letterRatio < 0.55 { return 0.0 }
-
-        if words.count == 2 || words.count == 3 { return 1.0 }
-        if words.count == 1 { return 0.45 }
-        if words.count == 4 { return 0.65 }
-        return 0.50
     }
 
     private func sendLogForGenerated(_ item: (recipient: Recipient, pdfData: Data)) -> SendLog? {

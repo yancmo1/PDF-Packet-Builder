@@ -302,43 +302,9 @@ class CSVService {
         // If we have too little data, don't guess.
         guard sampleValues.count >= 3 else { return 0.0 }
 
-        let scores = sampleValues.map { personNameScore($0) }
+        let scores = sampleValues.map { NameScoring.personNameScore($0) }
         let total = scores.reduce(0.0, +)
         return total / Double(scores.count)
-    }
-
-    private func personNameScore(_ raw: String) -> Double {
-        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if value.isEmpty { return 0.0 }
-        if value.contains("@") { return 0.0 }
-
-        // Reject if it looks numeric-heavy.
-        let digitCount = value.unicodeScalars.filter { CharacterSet.decimalDigits.contains($0) }.count
-        if digitCount > 0 { return 0.0 }
-
-        // Basic word count.
-        let words = value
-            .replacingOccurrences(of: ",", with: " ")
-            .split(whereSeparator: { $0.isWhitespace })
-            .map(String.init)
-
-        if words.isEmpty { return 0.0 }
-
-        // Penalize long/compound strings.
-        if words.count > 5 { return 0.20 }
-
-        // Measure letter density.
-        let letterCount = value.unicodeScalars.filter { CharacterSet.letters.contains($0) }.count
-        let scalarCount = max(1, value.unicodeScalars.count)
-        let letterRatio = Double(letterCount) / Double(scalarCount)
-        if letterRatio < 0.55 { return 0.0 }
-
-        // Common name shapes.
-        if words.count == 2 || words.count == 3 { return 1.0 }
-        if words.count == 1 { return 0.45 }
-        if words.count == 4 { return 0.65 }
-
-        return 0.50
     }
 
     private func emailValueScore(sampleValues: [String]) -> Double {

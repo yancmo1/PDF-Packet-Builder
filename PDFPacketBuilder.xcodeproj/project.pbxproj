@@ -43,6 +43,8 @@
 		F61326E76F954C2D95FFE65F /* GenerateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22534FB84A4D42A2B8598F83 /* GenerateView.swift */; };
 		FD275F786C0D48C4AB379DFF /* ManualRecipientView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ADCC08912BE44348A7BF7FB /* ManualRecipientView.swift */; };
 		NVXFY5MODF272XEZ01XHV9JN /* PDFPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6D7E8F9A0B1C2 /* PDFPreviewView.swift */; };
+		NS1A2B3C4D5E6F7A8B9C0D1E /* NameScoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = NS0A1B2C3D4E5F6A7B8C9D0E /* NameScoring.swift */; };
+		CA1A2B3C4D5E6F7A8B9C0D1F /* CursorAwareTextFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0A1B2C3D4E5F6A7B8C9D0F /* CursorAwareTextFields.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -85,6 +87,8 @@
 		E72C760EE20645DA9FE96960 /* PDFPacketBuilder.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PDFPacketBuilder.entitlements; sourceTree = "<group>"; };
 		F9F9ADA768E1420F8C6582EC /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		FA0F171B2F5745248996D3E2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		NS0A1B2C3D4E5F6A7B8C9D0E /* NameScoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NameScoring.swift; sourceTree = "<group>"; };
+		CA0A1B2C3D4E5F6A7B8C9D0F /* CursorAwareTextFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorAwareTextFields.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -144,6 +148,8 @@
 				A11C0A9F1E7E4A33B8F6A2D1 /* NameNormalization.swift */,
 				C0FFEE0C0FFEE0C0FFEE0C03 /* MessageTemplateRenderer.swift */,
 				C0FFEE0C0FFEE0C0FFEE0C51 /* ZipWriter.swift */,
+				NS0A1B2C3D4E5F6A7B8C9D0E /* NameScoring.swift */,
+				CA0A1B2C3D4E5F6A7B8C9D0F /* CursorAwareTextFields.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -310,6 +316,8 @@
 				A11C0AA01E7E4A33B8F6A2D1 /* NameNormalization.swift in Sources */,
 				C0FFEE0C0FFEE0C0FFEE0C04 /* MessageTemplateRenderer.swift in Sources */,
 				C0FFEE0C0FFEE0C0FFEE0C52 /* ZipWriter.swift in Sources */,
+				NS1A2B3C4D5E6F7A8B9C0D1E /* NameScoring.swift in Sources */,
+				CA1A2B3C4D5E6F7A8B9C0D1F /* CursorAwareTextFields.swift in Sources */,
 				BC6CD96707994989AE9DC9E1 /* IAPManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
