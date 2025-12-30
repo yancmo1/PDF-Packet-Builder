@@ -21,6 +21,7 @@ struct MailComposer: UIViewControllerRepresentable {
     @Environment(\.dismiss) private var dismiss
     
     func makeUIViewController(context: Context) -> UIViewController {
+#if DEBUG
         if shouldUseMailSimulator {
             let simulated = SimulatedMailComposerView(
                 subject: subject,
@@ -32,6 +33,7 @@ struct MailComposer: UIViewControllerRepresentable {
             )
             return UIHostingController(rootView: simulated)
         }
+#endif
 
         let composer = MFMailComposeViewController()
         composer.mailComposeDelegate = context.coordinator

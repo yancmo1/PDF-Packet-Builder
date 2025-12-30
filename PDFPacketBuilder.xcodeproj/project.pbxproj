@@ -16,6 +16,7 @@
 		5DEE8681E1204BCB8A76D073 /* PDFTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D87B8696134640B767EED4 /* PDFTemplate.swift */; };
 		C0FFEE0C0FFEE0C0FFEE0C02 /* MessageTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE0C0FFEE0C0FFEE0C01 /* MessageTemplate.swift */; };
 		C0FFEE0C0FFEE0C0FFEE0C04 /* MessageTemplateRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE0C0FFEE0C0FFEE0C03 /* MessageTemplateRenderer.swift */; };
+		C0FFEE0C0FFEE0C0FFEE0C52 /* ZipWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE0C0FFEE0C0FFEE0C51 /* ZipWriter.swift */; };
 		C0FFEE0C0FFEE0C0FFEE0C12 /* HowToUseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE0C0FFEE0C0FFEE0C11 /* HowToUseView.swift */; };
 		C0FFEE0C0FFEE0C0FFEE0C14 /* QuickStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE0C0FFEE0C0FFEE0C13 /* QuickStartView.swift */; };
 		60A8BA1AF9AF40F19620645F /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9F9ADA768E1420F8C6582EC /* AppState.swift */; };
@@ -48,6 +49,7 @@
 		00D87B8696134640B767EED4 /* PDFTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFTemplate.swift; sourceTree = "<group>"; };
 		C0FFEE0C0FFEE0C0FFEE0C01 /* MessageTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageTemplate.swift; sourceTree = "<group>"; };
 		C0FFEE0C0FFEE0C0FFEE0C03 /* MessageTemplateRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageTemplateRenderer.swift; sourceTree = "<group>"; };
+		C0FFEE0C0FFEE0C0FFEE0C51 /* ZipWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipWriter.swift; sourceTree = "<group>"; };
 		C0FFEE0C0FFEE0C0FFEE0C11 /* HowToUseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HowToUseView.swift; sourceTree = "<group>"; };
 		C0FFEE0C0FFEE0C0FFEE0C13 /* QuickStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickStartView.swift; sourceTree = "<group>"; };
 		078690AC6BA44032B6B7259B /* PDFService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFService.swift; sourceTree = "<group>"; };
@@ -141,6 +143,7 @@
 				A11C0A9D1E7E4A33B8F6A2D1 /* AutoMapping.swift */,
 				A11C0A9F1E7E4A33B8F6A2D1 /* NameNormalization.swift */,
 				C0FFEE0C0FFEE0C0FFEE0C03 /* MessageTemplateRenderer.swift */,
+				C0FFEE0C0FFEE0C0FFEE0C51 /* ZipWriter.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -306,6 +309,7 @@
 				A11C0A9E1E7E4A33B8F6A2D1 /* AutoMapping.swift in Sources */,
 				A11C0AA01E7E4A33B8F6A2D1 /* NameNormalization.swift in Sources */,
 				C0FFEE0C0FFEE0C0FFEE0C04 /* MessageTemplateRenderer.swift in Sources */,
+				C0FFEE0C0FFEE0C0FFEE0C52 /* ZipWriter.swift in Sources */,
 				BC6CD96707994989AE9DC9E1 /* IAPManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

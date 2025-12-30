@@ -1042,20 +1042,12 @@ struct GenerateView: View {
         }
 
         // Prefer sharing a ZIP for better compatibility across share targets.
-        // If unavailable (older iOS), or if zipping fails, fall back to sharing the folder.
-        if #available(iOS 16.0, *) {
-            let zipURL = tempRoot.appendingPathComponent(rootName).appendingPathExtension("zip")
-            do {
-                if fm.fileExists(atPath: zipURL.path) {
-                    try fm.removeItem(at: zipURL)
-                }
-
-                try fm.zipItem(at: rootURL, to: zipURL)
-                currentExportBundle = ExportBundle(shareURL: zipURL, cleanupURLs: [zipURL, rootURL])
-            } catch {
-                currentExportBundle = ExportBundle(shareURL: rootURL, cleanupURLs: [rootURL])
-            }
-        } else {
+        // If zipping fails, fall back to sharing the folder.
+        let zipURL = tempRoot.appendingPathComponent(rootName).appendingPathExtension("zip")
+        do {
+            try ZipWriter.zipFolder(at: rootURL, to: zipURL)
+            currentExportBundle = ExportBundle(shareURL: zipURL, cleanupURLs: [zipURL, rootURL])
+        } catch {
             currentExportBundle = ExportBundle(shareURL: rootURL, cleanupURLs: [rootURL])
         }
     }
