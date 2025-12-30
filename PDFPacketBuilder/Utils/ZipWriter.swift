@@ -40,8 +40,19 @@ struct ZipWriter {
 
         while let next = enumerator?.nextObject() {
             guard let fileURL = next as? URL else { continue }
-            let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey])
+            let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
             guard values.isRegularFile == true else { continue }
+
+            if let fileSize = values.fileSize {
+                // This ZIP writer is not ZIP64; guard against overflow.
+                if fileSize < 0 || UInt64(fileSize) > UInt64(UInt32.max) {
+                    throw NSError(
+                        domain: "ZipWriter",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "File too large for non-ZIP64 archive: \(fileURL.lastPathComponent)"]
+                    )
+                }
+            }
 
             let fullPath = fileURL.standardizedFileURL.path
             guard fullPath.hasPrefix(sourcePathPrefix) else { continue }
