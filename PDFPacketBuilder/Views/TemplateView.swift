@@ -135,6 +135,15 @@ struct TemplateView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(10)
                         }
+
+                        Button(action: loadSampleTemplate) {
+                            Label("Load Sample Template", systemImage: "doc.text.fill")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.purple)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
                     }
                     .padding()
                 }
@@ -250,6 +259,33 @@ struct TemplateView: View {
     private func handlePickerFailure(_ error: Error) {
         importErrorMessage = "Access to the selected file was denied. Please choose a file stored locally (On My iPhone) or grant permission in the file provider."
         showingImportError = true
+    }
+
+    private func loadSampleTemplate() {
+        isProcessing = true
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let data = SampleAssets.loadSamplePDF() else {
+                DispatchQueue.main.async {
+                    importErrorMessage = "Sample template not found in app bundle."
+                    showingImportError = true
+                    isProcessing = false
+                }
+                return
+            }
+
+            let fields = pdfService.extractFields(from: data)
+            let template = PDFTemplate(
+                name: SampleAssets.sampleTemplateName,
+                pdfData: data,
+                fields: fields
+            )
+
+            DispatchQueue.main.async {
+                appState.saveTemplate(template)
+                isProcessing = false
+            }
+        }
     }
 }
 

@@ -69,6 +69,15 @@ struct RecipientsView: View {
                                     .foregroundColor(.white)
                                     .cornerRadius(10)
                             }
+
+                            Button(action: loadSampleRecipients) {
+                                Label("Load Sample Recipients", systemImage: "person.2.fill")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.purple)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                            }
                         }
                         .padding()
                     }
@@ -169,6 +178,12 @@ struct RecipientsView: View {
         let remaining = appState.recipients.filter { !selectedRecipients.contains($0.id) }
         appState.saveRecipients(remaining)
         selectedRecipients.removeAll()
+    }
+
+    private func loadSampleRecipients() {
+        let sampleRecipients = SampleAssets.loadSampleRecipients()
+        guard !sampleRecipients.isEmpty else { return }
+        appState.saveRecipients(sampleRecipients)
     }
 }
 
