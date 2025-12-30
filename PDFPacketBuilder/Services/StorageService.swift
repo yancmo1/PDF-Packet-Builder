@@ -8,8 +8,19 @@
 import Foundation
 
 class StorageService {
-    private let defaults = UserDefaults.standard
-    private let fileManager = FileManager.default
+    private let defaults: UserDefaults
+    private let fileManager: FileManager
+    private let templateBaseDirectoryOverride: URL?
+
+    init(
+        defaults: UserDefaults = .standard,
+        fileManager: FileManager = .default,
+        templateBaseDirectoryOverride: URL? = nil
+    ) {
+        self.defaults = defaults
+        self.fileManager = fileManager
+        self.templateBaseDirectoryOverride = templateBaseDirectoryOverride
+    }
     
     // Keys
     private let templateKey = "pdfTemplate"
@@ -24,7 +35,17 @@ class StorageService {
     // MARK: - Template Storage
     
     func saveTemplate(_ template: PDFTemplate?) {
-        if let template = template {
+        if var template {
+            // Ensure we never persist large PDF bytes in UserDefaults once disk-backed.
+            // If the PDF is still embedded (legacy/in-memory), write it to disk and set pdfFilePath.
+            if (template.pdfFilePath == nil || template.pdfFilePath?.isEmpty == true),
+               let data = template.pdfData,
+               !data.isEmpty {
+                let relativePath = saveTemplatePDFData(data, templateID: template.id)
+                template.pdfFilePath = relativePath
+            }
+
+            // Persist metadata only (Codable encode omits pdfData when pdfFilePath exists).
             if let encoded = try? JSONEncoder().encode(template) {
                 defaults.set(encoded, forKey: templateKey)
             }
@@ -35,7 +56,100 @@ class StorageService {
     
     func loadTemplate() -> PDFTemplate? {
         guard let data = defaults.data(forKey: templateKey) else { return nil }
-        return try? JSONDecoder().decode(PDFTemplate.self, from: data)
+        guard var decoded = try? JSONDecoder().decode(PDFTemplate.self, from: data) else { return nil }
+
+        // One-time migration: legacy templates embedded pdfData in JSON and had no pdfFilePath.
+        if (decoded.pdfFilePath == nil || decoded.pdfFilePath?.isEmpty == true),
+           let embedded = decoded.pdfData,
+           !embedded.isEmpty {
+            let relativePath = saveTemplatePDFData(embedded, templateID: decoded.id)
+            decoded.pdfFilePath = relativePath
+            // Drop embedded bytes after migration to keep memory + UserDefaults lean.
+            decoded.pdfData = nil
+            // Re-save to persist the new disk-backed reference.
+            saveTemplate(decoded)
+        }
+
+        return decoded
+    }
+
+    // MARK: - Template PDF File Persistence
+
+    /// Returns the base directory where we store app-managed template PDFs.
+    /// Preferred location: Application Support/PDFPacketBuilder
+    private func templateBaseDirectoryURL() -> URL {
+        if let override = templateBaseDirectoryOverride {
+            return override
+        }
+
+        let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        // Keep it stable and app-scoped.
+        return appSupport.appendingPathComponent("PDFPacketBuilder", isDirectory: true)
+    }
+
+    private func templatesDirectoryURL() -> URL {
+        templateBaseDirectoryURL().appendingPathComponent("Templates", isDirectory: true)
+    }
+
+    private func ensureTemplatesDirectoryExists() {
+        let base = templateBaseDirectoryURL()
+        if !fileManager.fileExists(atPath: base.path) {
+            try? fileManager.createDirectory(at: base, withIntermediateDirectories: true)
+        }
+
+        let templates = templatesDirectoryURL()
+        if !fileManager.fileExists(atPath: templates.path) {
+            try? fileManager.createDirectory(at: templates, withIntermediateDirectories: true)
+        }
+    }
+
+    /// Save template PDF data to disk and return a relative file path suitable for persistence.
+    /// - Returns: relative path like "Templates/<templateID>.pdf"
+    @discardableResult
+    func saveTemplatePDFData(_ data: Data, templateID: UUID) -> String {
+        ensureTemplatesDirectoryExists()
+        let fileName = "\(templateID.uuidString).pdf"
+        let destination = templatesDirectoryURL().appendingPathComponent(fileName)
+
+        do {
+            try data.write(to: destination, options: [.atomic])
+        } catch {
+            print("Error saving template PDF: \(error)")
+        }
+
+        return "Templates/\(fileName)"
+    }
+
+    func loadTemplatePDFData(from relativePath: String) -> Data? {
+        let trimmed = relativePath.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let url = templateBaseDirectoryURL().appendingPathComponent(trimmed)
+        return try? Data(contentsOf: url)
+    }
+
+    func deleteTemplatePDF(at relativePath: String) {
+        let trimmed = relativePath.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let url = templateBaseDirectoryURL().appendingPathComponent(trimmed)
+        if fileManager.fileExists(atPath: url.path) {
+            try? fileManager.removeItem(at: url)
+        }
+    }
+
+    func loadTemplatePDFData(for template: PDFTemplate) -> Data? {
+        if let data = template.pdfData, !data.isEmpty {
+            return data
+        }
+        if let path = template.pdfFilePath {
+            return loadTemplatePDFData(from: path)
+        }
+        return nil
+    }
+
+    func deleteTemplatePDF(for template: PDFTemplate) {
+        if let path = template.pdfFilePath {
+            deleteTemplatePDF(at: path)
+        }
     }
     
     // MARK: - Recipients Storage

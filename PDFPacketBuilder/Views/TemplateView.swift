@@ -17,6 +17,8 @@ struct TemplateView: View {
     @State private var showingImportError = false
     @State private var importErrorMessage: String?
     @State private var pendingPDFUrl: URL?
+
+    @State private var resolvedTemplatePDFData: Data?
     
     private let pdfService = PDFService()
     
@@ -27,10 +29,20 @@ struct TemplateView: View {
                     ScrollView {
                         VStack(spacing: 20) {
                             // PDF Preview
-                            PDFPreviewView(pdfData: template.pdfData)
-                                .frame(height: 300)
-                                .cornerRadius(10)
-                                .shadow(radius: 5)
+                            Group {
+                                if let data = resolvedTemplatePDFData {
+                                    PDFPreviewView(pdfData: data)
+                                        .frame(height: 300)
+                                        .cornerRadius(10)
+                                        .shadow(radius: 5)
+                                } else {
+                                    ProgressView("Loading PDF…")
+                                        .frame(height: 300)
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(10)
+                                }
+                            }
                             
                             Text(template.name)
                                 .font(.title2)
@@ -131,6 +143,12 @@ struct TemplateView: View {
                 Spacer()
             }
             .navigationTitle("Template")
+            .onAppear {
+                resolvedTemplatePDFData = appState.resolvedTemplatePDFData()
+            }
+            .onChange(of: appState.pdfTemplate?.id) { _ in
+                resolvedTemplatePDFData = appState.resolvedTemplatePDFData()
+            }
             .sheet(isPresented: $showingDocumentPicker) {
                 DocumentPicker(
                     onPDFSelected: handlePDFImport,
@@ -201,16 +219,16 @@ struct TemplateView: View {
                 let data = try Data(contentsOf: url)
                 let fields = pdfService.extractFields(from: data)
                 let fileName = url.deletingPathExtension().lastPathComponent
-                
-                // Save a copy to Documents directory
+
+                // Disk-backed template storage (Application Support) + lightweight metadata in UserDefaults.
                 let storageService = StorageService()
-                let savedFileName = "\(fileName).pdf"
-                if storageService.savePDFToDocuments(data: data, filename: savedFileName) == nil {
-                    print("Warning: Failed to save PDF to Documents directory")
-                }
-                
-                let template = PDFTemplate(
+                let templateID = UUID()
+                let relativePath = storageService.saveTemplatePDFData(data, templateID: templateID)
+
+                var template = PDFTemplate(
+                    id: templateID,
                     name: fileName,
+                    pdfFilePath: relativePath,
                     pdfData: data,
                     fields: fields
                 )
@@ -221,6 +239,7 @@ struct TemplateView: View {
                     } else {
                         appState.saveTemplate(template)
                     }
+                    resolvedTemplatePDFData = appState.resolvedTemplatePDFData()
                     isProcessing = false
                     pendingPDFUrl = nil
                 }

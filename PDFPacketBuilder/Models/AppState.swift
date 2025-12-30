@@ -48,6 +48,13 @@ class AppState: ObservableObject {
         self.pdfTemplate = template
         storageService.saveTemplate(template)
     }
+
+    /// Centralized accessor for template PDF bytes.
+    /// - Important: templates are now disk-backed after migration; do not assume `pdfData` is present.
+    func resolvedTemplatePDFData() -> Data? {
+        guard let template = pdfTemplate else { return nil }
+        return storageService.loadTemplatePDFData(for: template)
+    }
     
     func saveRecipients(_ recipients: [Recipient]) {
         self.recipients = recipients
@@ -129,6 +136,9 @@ class AppState: ObservableObject {
     }
     
     func removeTemplate() {
+        if let existing = pdfTemplate {
+            storageService.deleteTemplatePDF(for: existing)
+        }
         self.pdfTemplate = nil
         storageService.saveTemplate(nil)
         
@@ -139,6 +149,9 @@ class AppState: ObservableObject {
     }
     
     func replaceTemplate(_ newTemplate: PDFTemplate) {
+        if let existing = pdfTemplate {
+            storageService.deleteTemplatePDF(for: existing)
+        }
         // For free tier, clear old data before replacing
         if !isProUnlocked {
             clearMappingAndHistory()

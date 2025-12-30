@@ -381,6 +381,13 @@ struct GenerateView: View {
     
     private func generatePDFs() {
         guard let template = appState.pdfTemplate else { return }
+        guard let templatePDFData = appState.resolvedTemplatePDFData() else {
+            // Template metadata exists, but the PDF bytes could not be loaded.
+            DispatchQueue.main.async {
+                self.showingShareErrorAlert = true
+            }
+            return
+        }
 
         // Snapshot inputs on the main thread to avoid races while generating.
         let recipientsToGenerate = selectedRecipients
@@ -392,7 +399,7 @@ struct GenerateView: View {
             var pdfs: [(Recipient, Data)] = []
             
             for recipient in recipientsToGenerate {
-                if let pdfData = pdfService.generatePersonalizedPDF(template: template, recipient: recipient) {
+                if let pdfData = pdfService.generatePersonalizedPDF(templatePDFData: templatePDFData, template: template, recipient: recipient) {
                     pdfs.append((recipient, pdfData))
                 }
             }
