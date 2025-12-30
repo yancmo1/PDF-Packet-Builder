@@ -47,27 +47,6 @@ struct SettingsView: View {
 #endif
                 
                 if !iapManager.isProUnlocked {
-                    Section(header: Text("Free Plan Limits")) {
-                        HStack {
-                            Text("Templates")
-                            Spacer()
-                            Text("1 max")
-                                .foregroundColor(.secondary)
-                        }
-                        HStack {
-                            Text("Recipients per batch")
-                            Spacer()
-                            Text("10 max")
-                                .foregroundColor(.secondary)
-                        }
-                        HStack {
-                            Text("Log retention")
-                            Spacer()
-                            Text("7 days")
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
                     Section {
                         Button(action: {
                             showingPurchaseSheet = true
@@ -119,6 +98,12 @@ struct SettingsView: View {
                         Text("1.0.0")
                             .foregroundColor(.secondary)
                     }
+                }
+
+                Section(header: Text("Pro includes")) {
+                    Text("• Batch Export Folder")
+                    Text("• Message Templates (tokens + preview)")
+                    Text("• Export Logs (CSV)")
                 }
             }
             .navigationTitle("Settings")

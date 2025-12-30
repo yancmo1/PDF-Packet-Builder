@@ -42,14 +42,14 @@ struct LogsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
-                        if iapManager.isProUnlocked {
-                            Button(action: exportAsCSV) {
-                                Label("Export Logs", systemImage: "square.and.arrow.up")
+                        Button {
+                            if iapManager.isProUnlocked {
+                                exportAsCSV()
+                            } else {
+                                showingPurchaseSheet = true
                             }
-                        } else {
-                            Button(action: { showingPurchaseSheet = true }) {
-                                Label("Unlock Pro", systemImage: "star.fill")
-                            }
+                        } label: {
+                            Label("Export Logs", systemImage: "square.and.arrow.up")
                         }
                         if !appState.sendLogs.isEmpty {
                             Divider()

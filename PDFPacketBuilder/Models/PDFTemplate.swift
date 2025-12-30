@@ -19,6 +19,7 @@ struct PDFTemplate: Codable, Identifiable {
     var pdfData: Data?
     var fields: [PDFField]
     var fieldMappings: [String: String] // fieldName -> recipientProperty
+    var messageTemplate: MessageTemplate?
     var createdAt: Date
 
     init(
@@ -28,6 +29,7 @@ struct PDFTemplate: Codable, Identifiable {
         pdfData: Data? = nil,
         fields: [PDFField] = [],
         fieldMappings: [String: String] = [:],
+        messageTemplate: MessageTemplate? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -36,6 +38,7 @@ struct PDFTemplate: Codable, Identifiable {
         self.pdfData = pdfData
         self.fields = fields
         self.fieldMappings = fieldMappings
+        self.messageTemplate = messageTemplate
         self.createdAt = createdAt
     }
 
@@ -46,6 +49,7 @@ struct PDFTemplate: Codable, Identifiable {
         case pdfData
         case fields
         case fieldMappings
+        case messageTemplate
         case createdAt
     }
 
@@ -58,6 +62,7 @@ struct PDFTemplate: Codable, Identifiable {
         self.pdfData = try? container.decodeIfPresent(Data.self, forKey: .pdfData)
         self.fields = (try? container.decode([PDFField].self, forKey: .fields)) ?? []
         self.fieldMappings = (try? container.decode([String: String].self, forKey: .fieldMappings)) ?? [:]
+        self.messageTemplate = try? container.decodeIfPresent(MessageTemplate.self, forKey: .messageTemplate)
         self.createdAt = (try? container.decode(Date.self, forKey: .createdAt)) ?? Date()
     }
 
@@ -69,6 +74,7 @@ struct PDFTemplate: Codable, Identifiable {
         try container.encodeIfPresent(pdfFilePath, forKey: .pdfFilePath)
         try container.encode(fields, forKey: .fields)
         try container.encode(fieldMappings, forKey: .fieldMappings)
+        try container.encodeIfPresent(messageTemplate, forKey: .messageTemplate)
         try container.encode(createdAt, forKey: .createdAt)
 
         // IMPORTANT: Do not re-embed large PDF bytes once the template is disk-backed.

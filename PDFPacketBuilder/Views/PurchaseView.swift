@@ -20,12 +20,12 @@ struct PurchaseView: View {
                     .fontWeight(.semibold)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Removes limits:")
+                    Text("Productivity Pro includes:")
                         .font(.headline)
 
-                    Text("• Unlimited recipients per batch")
-                    Text("• Full send history")
-                    Text("• Export logs as CSV")
+                    Text("• Batch Export Folder")
+                    Text("• Message Templates (subject/body + tokens + preview)")
+                    Text("• Export Logs as CSV")
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()

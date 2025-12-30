@@ -18,10 +18,22 @@ struct GenerateView: View {
     @State private var showingMailUnavailableAlert = false
     @State private var showingMailFailedAlert = false
     @State private var mailFailedMessage: String = ""
-    @State private var showingRecipientLimitAlert = false
     @State private var showingNoRecipientsSelectedAlert = false
     @State private var showingShareErrorAlert = false
     @State private var showingNoEmailForRowAlert = false
+
+    // Pro: message templates
+    @State private var isMessageTemplateEnabled = false
+    @State private var subjectTemplateText = MessageTemplate.default.subjectTemplate
+    @State private var bodyTemplateText = MessageTemplate.default.bodyTemplate
+
+    // Pro: batch export folder
+    @State private var showingFolderPicker = false
+    @State private var isExporting = false
+    @State private var exportedBundleURL: URL?
+    @State private var showingExportShareSheet = false
+    @State private var exportErrorMessage: String?
+    @State private var showingExportErrorAlert = false
 
     @State private var statusFilter: StatusFilter = .all
 
@@ -29,6 +41,7 @@ struct GenerateView: View {
     @State private var isRecipientListExpanded = true
     
     private let pdfService = PDFService()
+    private let exportService = ExportService()
 
     private enum StatusFilter: String, CaseIterable, Identifiable {
         case all = "All"
@@ -167,6 +180,8 @@ struct GenerateView: View {
                             .padding()
                             .background(Color(.systemGray6))
                             .cornerRadius(10)
+
+                            messageTemplateSection
                             
                             Button(action: attemptGenerate) {
                                 Label("Generate PDFs", systemImage: "doc.on.doc")
@@ -196,6 +211,16 @@ struct GenerateView: View {
                                         Text("Sent \(sentCount) / \(generatedPDFs.count)")
                                             .font(.footnote)
                                             .foregroundColor(.secondary)
+                                    }
+
+                                    HStack {
+                                        Button {
+                                            attemptExportFolder()
+                                        } label: {
+                                            Label("Export Folder", systemImage: "folder")
+                                                .font(.subheadline)
+                                        }
+                                        Spacer()
                                     }
 
                                     Picker("Filter", selection: $statusFilter) {
@@ -268,6 +293,11 @@ struct GenerateView: View {
                 if selectedRecipientIDs.isEmpty {
                     selectedRecipientIDs = Set(appState.recipients.map { $0.id })
                 }
+
+                syncMessageTemplateFromAppState()
+            }
+            .onChange(of: appState.pdfTemplate?.id) { _ in
+                syncMessageTemplateFromAppState()
             }
             .onChange(of: appState.recipients) { newRecipients in
                 // Remove IDs that no longer exist, and auto-select new recipients.
@@ -278,6 +308,12 @@ struct GenerateView: View {
             .overlay {
                 if isGenerating {
                     ProgressView("Generating PDFs...")
+                        .padding()
+                        .background(Color(.systemBackground))
+                        .cornerRadius(10)
+                        .shadow(radius: 10)
+                } else if isExporting {
+                    ProgressView("Exporting...")
                         .padding()
                         .background(Color(.systemBackground))
                         .cornerRadius(10)
@@ -307,7 +343,8 @@ struct GenerateView: View {
             }
             .sheet(item: $currentMailItem) { mailItem in
                 MailComposer(
-                    subject: "\(mailItem.templateName) PDF",
+                    subject: mailItem.subject,
+                    body: mailItem.body,
                     recipient: mailItem.recipientEmail,
                     pdfData: mailItem.pdfData,
                     fileName: mailItem.fileName
@@ -327,13 +364,18 @@ struct GenerateView: View {
             .sheet(isPresented: $showingPaywall) {
                 PurchaseView()
             }
-            .alert("Limit reached", isPresented: $showingRecipientLimitAlert) {
-                Button("OK", role: .cancel) { }
-                Button("Unlock Pro") {
-                    showingPaywall = true
+            .sheet(isPresented: $showingFolderPicker) {
+                FolderPicker(onSelected: { folderURL in
+                    exportToFolder(folderURL)
+                }, onFailure: { error in
+                    exportErrorMessage = error.localizedDescription
+                    showingExportErrorAlert = true
+                })
+            }
+            .sheet(isPresented: $showingExportShareSheet) {
+                if let url = exportedBundleURL {
+                    ShareSheet(items: [url])
                 }
-            } message: {
-                Text("Free version supports 10 recipients per batch. Unlock Pro to remove limits.")
             }
             .alert("No recipients selected", isPresented: $showingNoRecipientsSelectedAlert) {
                 Button("OK", role: .cancel) { }
@@ -360,17 +402,200 @@ struct GenerateView: View {
             } message: {
                 Text("We could not prepare the PDF for sharing. Please try again.")
             }
+            .alert("Export failed", isPresented: $showingExportErrorAlert) {
+                Button("OK", role: .cancel) {
+                    exportErrorMessage = nil
+                }
+            } message: {
+                Text(exportErrorMessage ?? "We could not export the folder bundle. Please try again.")
+            }
+        }
+    }
+
+    private var messageTemplateSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Message Template")
+                    .font(.headline)
+                Spacer()
+                Text("Pro")
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.15))
+                    .foregroundColor(.orange)
+                    .clipShape(Capsule())
+            }
+
+            if !iapManager.isProUnlocked {
+                Text("Customize subject/body with tokens and preview before sending.")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+
+                Button {
+                    showingPaywall = true
+                } label: {
+                    Label("Unlock Pro to edit messages", systemImage: "star.fill")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color(.systemGray5))
+                        .cornerRadius(8)
+                }
+            } else {
+                Toggle("Enable message template", isOn: $isMessageTemplateEnabled)
+                    .onChange(of: isMessageTemplateEnabled) { _ in
+                        persistMessageTemplateToAppState()
+                    }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Subject")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    TextField("Subject", text: $subjectTemplateText)
+                        .textFieldStyle(.roundedBorder)
+                        .disabled(!isMessageTemplateEnabled)
+                        .onChange(of: subjectTemplateText) { _ in
+                            persistMessageTemplateToAppState()
+                        }
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Body")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    TextEditor(text: $bodyTemplateText)
+                        .frame(minHeight: 90)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(.systemGray4), lineWidth: 1)
+                        )
+                        .disabled(!isMessageTemplateEnabled)
+                        .onChange(of: bodyTemplateText) { _ in
+                            persistMessageTemplateToAppState()
+                        }
+                }
+
+                if isMessageTemplateEnabled, let recipient = selectedRecipients.first {
+                    let templateName = appState.pdfTemplate?.name ?? "document"
+                    let fileName = outputFileName(for: recipient)
+                    let ctx = MessageTemplateService.RenderContext(
+                        recipient: recipient,
+                        templateName: templateName,
+                        outputFileName: fileName
+                    )
+                    let mt = MessageTemplate(isEnabled: true, subjectTemplate: subjectTemplateText, bodyTemplate: bodyTemplateText)
+                    let previewSubject = MessageTemplateService.renderSubject(mt, context: ctx)
+                    let previewBody = MessageTemplateService.renderBody(mt, context: ctx)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Preview (first selected recipient)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(previewSubject)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .lineLimit(2)
+                        Text(previewBody)
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                            .lineLimit(4)
+                    }
+                    .padding(10)
+                    .background(Color(.systemGray5))
+                    .cornerRadius(8)
+                }
+
+                Text("Tokens: {{FirstName}}, {{LastName}}, {{FullName}}, {{Email}}, {{TemplateName}}, {{FileName}}")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+    }
+
+    private func syncMessageTemplateFromAppState() {
+        guard let template = appState.pdfTemplate else { return }
+        let mt = template.messageTemplate ?? MessageTemplate.default
+
+        // Do not force-disable stored templates for Free users; just reflect persisted state.
+        isMessageTemplateEnabled = mt.isEnabled
+        subjectTemplateText = mt.subjectTemplate
+        bodyTemplateText = mt.bodyTemplate
+    }
+
+    private func persistMessageTemplateToAppState() {
+        guard iapManager.isProUnlocked else { return }
+        guard var template = appState.pdfTemplate else { return }
+
+        template.messageTemplate = MessageTemplate(
+            isEnabled: isMessageTemplateEnabled,
+            subjectTemplate: subjectTemplateText,
+            bodyTemplate: bodyTemplateText
+        )
+        appState.saveTemplate(template)
+    }
+
+    private func attemptExportFolder() {
+        guard !generatedPDFs.isEmpty else { return }
+
+        if !iapManager.isProUnlocked {
+            showingPaywall = true
+            return
+        }
+
+        showingFolderPicker = true
+    }
+
+    private func exportToFolder(_ folderURL: URL) {
+        guard let templateName = appState.pdfTemplate?.name else { return }
+        let items = generatedPDFs.map { ExportService.GeneratedItem(recipient: $0.recipient, pdfData: $0.pdfData) }
+
+        isExporting = true
+        exportErrorMessage = nil
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let messageProvider: ((Recipient, String) -> String?)? = {
+                    recipient, outputFileName in
+                    guard self.iapManager.isProUnlocked, self.isMessageTemplateEnabled else { return nil }
+                    let ctx = MessageTemplateService.RenderContext(
+                        recipient: recipient,
+                        templateName: templateName,
+                        outputFileName: outputFileName
+                    )
+                    let mt = MessageTemplate(isEnabled: true, subjectTemplate: self.subjectTemplateText, bodyTemplate: self.bodyTemplateText)
+                    let subject = MessageTemplateService.renderSubject(mt, context: ctx)
+                    let body = MessageTemplateService.renderBody(mt, context: ctx)
+                    return "Subject: \(subject)\n\n\(body)"
+                }
+
+                let url = try self.exportService.exportBundle(
+                    items: items,
+                    templateName: templateName,
+                    parentFolderURL: folderURL,
+                    messageProvider: messageProvider
+                )
+
+                DispatchQueue.main.async {
+                    self.isExporting = false
+                    self.exportedBundleURL = url
+                    self.showingExportShareSheet = true
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.isExporting = false
+                    self.exportErrorMessage = error.localizedDescription
+                    self.showingExportErrorAlert = true
+                }
+            }
         }
     }
 
     private func attemptGenerate() {
         if selectedRecipientIDs.isEmpty {
             showingNoRecipientsSelectedAlert = true
-            return
-        }
-
-        if !iapManager.isProUnlocked && selectedRecipientIDs.count > AppState.freeMaxRecipients {
-            showingRecipientLimitAlert = true
             return
         }
 
@@ -436,6 +661,26 @@ struct GenerateView: View {
         let fileName = outputFileName(for: item.recipient)
         let templateName = appState.pdfTemplate?.name ?? "document"
 
+        let subject: String
+        let body: String?
+        if iapManager.isProUnlocked && isMessageTemplateEnabled {
+            let mt = MessageTemplate(
+                isEnabled: true,
+                subjectTemplate: subjectTemplateText,
+                bodyTemplate: bodyTemplateText
+            )
+            let ctx = MessageTemplateService.RenderContext(
+                recipient: item.recipient,
+                templateName: templateName,
+                outputFileName: fileName
+            )
+            subject = MessageTemplateService.renderSubject(mt, context: ctx)
+            body = MessageTemplateService.renderBody(mt, context: ctx)
+        } else {
+            subject = "\(templateName) PDF"
+            body = nil
+        }
+
         let email = resolvedEmail(for: item.recipient)
         if email.isEmpty {
             showingNoEmailForRowAlert = true
@@ -446,7 +691,9 @@ struct GenerateView: View {
             recipientEmail: email,
             templateName: templateName,
             fileName: fileName,
-            pdfData: item.pdfData
+            pdfData: item.pdfData,
+            subject: subject,
+            body: body
         )
 
         currentMailItem = mailItem
@@ -684,6 +931,8 @@ struct MailItem: Identifiable {
     let templateName: String
     let fileName: String
     let pdfData: Data
+    let subject: String
+    let body: String?
 }
 
 struct GenerateView_Previews: PreviewProvider {

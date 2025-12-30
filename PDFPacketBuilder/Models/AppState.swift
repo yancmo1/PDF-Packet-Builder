@@ -18,8 +18,6 @@ class AppState: ObservableObject {
     private let storageService = StorageService()
     
     static let freeMaxTemplates = 1
-    static let freeMaxRecipients = 10
-    static let freeLogRetentionDays = 7
     
     init() {
         loadState()
@@ -40,9 +38,7 @@ class AppState: ObservableObject {
         return isProUnlocked || pdfTemplate == nil
     }
     
-    func canGenerateWithRecipientCount(_ count: Int) -> Bool {
-        return isProUnlocked || count <= Self.freeMaxRecipients
-    }
+    // Core workflow is free; batching/automation features are Pro-gated elsewhere.
     
     func saveTemplate(_ template: PDFTemplate) {
         self.pdfTemplate = template
@@ -105,11 +101,8 @@ class AppState: ObservableObject {
     }
     
     func cleanOldLogs() {
-        if !isProUnlocked {
-            let cutoffDate = Calendar.current.date(byAdding: .day, value: -Self.freeLogRetentionDays, to: Date()) ?? Date()
-            sendLogs = sendLogs.filter { $0.sentDate > cutoffDate }
-            storageService.saveLogs(sendLogs)
-        }
+        // As of v1.0.1 audit changes, log retention is not used for gating.
+        // Keep this hook for future maintenance/migrations.
     }
     
     func exportLogsAsCSV() -> String {
