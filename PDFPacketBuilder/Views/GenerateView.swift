@@ -25,6 +25,8 @@ struct GenerateView: View {
     @State private var showingNoEmailForRowAlert = false
     @State private var showingExportErrorAlert = false
     @State private var exportErrorMessage: String = ""
+    @State private var showingSendSuccessToast = false
+    @State private var sendSuccessMessage: String = ""
     @State private var previewPDFData: Data? = nil
     @State private var showingPDFPreview = false
 
@@ -341,6 +343,22 @@ struct GenerateView: View {
                         .shadow(radius: 10)
                 }
             }
+            .overlay(alignment: .bottom) {
+                if showingSendSuccessToast {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text(sendSuccessMessage)
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(10)
+                    .shadow(radius: 5)
+                    .padding(.bottom, 40)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.easeInOut, value: showingSendSuccessToast)
+                }
+            }
             .sheet(item: $currentShareItem) { item in
                 ShareSheet(
                     items: [item.url],
@@ -359,6 +377,7 @@ struct GenerateView: View {
                     if completed {
                         // Log the send only after successful share
                         logSend(recipientName: item.recipientName, templateName: item.templateName, fileName: item.fileName, method: .share)
+                        showSendSuccess("Shared to \(item.recipientName)")
                     }
                 }
             }
@@ -380,6 +399,7 @@ struct GenerateView: View {
                     if result == .sent {
                         // Log the send only after mail was sent
                         logSend(recipientName: mailItem.recipientName, templateName: mailItem.templateName, fileName: mailItem.fileName, method: .mail)
+                        showSendSuccess("Mailed to \(mailItem.recipientName)")
                     } else if result == .failed || error != nil {
                         mailFailedMessage = error?.localizedDescription ?? "Mail could not be sent. Please try again."
                         showingMailFailedAlert = true
@@ -1129,6 +1149,14 @@ struct GenerateView: View {
             method: method
         )
         appState.addSendLog(log)
+    }
+
+    private func showSendSuccess(_ message: String) {
+        sendSuccessMessage = message
+        showingSendSuccessToast = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            showingSendSuccessToast = false
+        }
     }
 
     private func outputFileName(for recipient: Recipient) -> String {
