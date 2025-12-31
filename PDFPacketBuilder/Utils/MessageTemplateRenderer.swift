@@ -21,6 +21,7 @@ struct MessageTemplateRenderer {
     static let systemTokens: Set<String> = [
         "recipient_name",
         "recipient_email",
+        "child_name",
         "packet_title",
         "date",
         "sender_name",

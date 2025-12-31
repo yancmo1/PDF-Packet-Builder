@@ -27,8 +27,7 @@ struct GenerateView: View {
     @State private var exportErrorMessage: String = ""
     @State private var showingSendSuccessToast = false
     @State private var sendSuccessMessage: String = ""
-    @State private var previewPDFData: Data? = nil
-    @State private var showingPDFPreview = false
+    @State private var currentPreviewItem: PreviewItem?
 
     @State private var statusFilter: StatusFilter = .all
 
@@ -45,6 +44,11 @@ struct GenerateView: View {
     @State private var messageBodyEditorHeight: CGFloat = 220
     
     private let pdfService = PDFService()
+
+    private struct PreviewItem: Identifiable {
+        let id = UUID()
+        let pdfData: Data
+    }
 
     private struct CSVTokenDescriptor: Hashable {
         var token: String
@@ -254,8 +258,7 @@ struct GenerateView: View {
                                             
                                             // Preview button
                                             Button(action: {
-                                                previewPDFData = item.pdfData
-                                                showingPDFPreview = true
+                                                currentPreviewItem = PreviewItem(pdfData: item.pdfData)
                                             }) {
                                                 Image(systemName: "eye")
                                                     .font(.caption)
@@ -412,21 +415,18 @@ struct GenerateView: View {
             .sheet(isPresented: $showingPaywall) {
                 PurchaseView()
             }
-            .sheet(isPresented: $showingPDFPreview) {
-                if let pdfData = previewPDFData {
-                    NavigationView {
-                        PDFPreviewView(pdfData: pdfData)
-                            .navigationTitle("Preview")
-                            .navigationBarTitleDisplayMode(.inline)
-                            .toolbar {
-                                ToolbarItem(placement: .confirmationAction) {
-                                    Button("Done") {
-                                        showingPDFPreview = false
-                                        previewPDFData = nil
-                                    }
+            .sheet(item: $currentPreviewItem) { previewItem in
+                NavigationView {
+                    PDFPreviewView(pdfData: previewItem.pdfData)
+                        .navigationTitle("Preview")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") {
+                                    currentPreviewItem = nil
                                 }
                             }
-                    }
+                        }
                 }
             }
             .alert("Limit reached", isPresented: $showingRecipientLimitAlert) {
@@ -809,6 +809,10 @@ struct GenerateView: View {
 
         values["recipient_name"] = displayName(for: recipient)
         values["recipient_email"] = resolvedEmail(for: recipient)
+
+        // Convenience alias used by the built-in starter template.
+        // If a CSV provides an explicit child_name token, it will override this value below.
+        values["child_name"] = values["recipient_name"] ?? ""
 
         for item in csvTokens {
             let boundHeader = messageTemplate.tokenBindings[item.token]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

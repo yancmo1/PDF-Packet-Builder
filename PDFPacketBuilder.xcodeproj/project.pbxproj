@@ -48,6 +48,11 @@
 		SAMPLE001000000000000001 /* SampleTemplate.pdf in Resources */ = {isa = PBXBuildFile; fileRef = SAMPLE001000000000000002 /* SampleTemplate.pdf */; };
 		SAMPLE001000000000000003 /* SampleRecipients.csv in Resources */ = {isa = PBXBuildFile; fileRef = SAMPLE001000000000000004 /* SampleRecipients.csv */; };
 		SAMPLE001000000000000005 /* SampleAssets.swift in Sources */ = {isa = PBXBuildFile; fileRef = SAMPLE001000000000000006 /* SampleAssets.swift */; };
+		A1B2C3D4E5F60718293A4B66 /* CSVServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B62 /* CSVServiceTests.swift */; };
+		A1B2C3D4E5F60718293A4B67 /* MessageTemplateRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B63 /* MessageTemplateRendererTests.swift */; };
+		A1B2C3D4E5F60718293A4B68 /* RecipientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B64 /* RecipientTests.swift */; };
+		A1B2C3D4E5F60718293A4B69 /* StorageMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B65 /* StorageMigrationTests.swift */; };
+		A1B2C3D4E5F60718293A4B6B /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B6A /* XCTest.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -95,13 +100,37 @@
 		SAMPLE001000000000000002 /* SampleTemplate.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = SampleTemplate.pdf; sourceTree = "<group>"; };
 		SAMPLE001000000000000004 /* SampleRecipients.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = SampleRecipients.csv; sourceTree = "<group>"; };
 		SAMPLE001000000000000006 /* SampleAssets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleAssets.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5D /* PDFPacketBuilderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDFPacketBuilderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D4E5F60718293A4B62 /* CSVServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVServiceTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B63 /* MessageTemplateRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageTemplateRendererTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B64 /* RecipientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B65 /* StorageMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageMigrationTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B6A /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXContainerItemProxy section */
+		A1B2C3D4E5F60718293A4B6C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 699229D1F8DF48D994C08E84 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C6F1E7228F56444E805C1365;
+			remoteInfo = PDFPacketBuilder;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		0FEE3BB037BF4AE69846E7CB /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F60718293A4B5F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F60718293A4B6B /* XCTest.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -191,7 +220,9 @@
 			isa = PBXGroup;
 			children = (
 				98BC85D6AB5640A89453CA3D /* PDFPacketBuilder */,
+				A1B2C3D4E5F60718293A4B61 /* PDFPacketBuilderTests */,
 				BC1DCCA008F34318AC11E9C2 /* Products */,
+				A1B2C3D4E5F60718293A4B71 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -199,8 +230,28 @@
 			isa = PBXGroup;
 			children = (
 				327649FEC022494B9D51CA31 /* PDFPacketBuilder.app */,
+				A1B2C3D4E5F60718293A4B5D /* PDFPacketBuilderTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F60718293A4B61 /* PDFPacketBuilderTests */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F60718293A4B62 /* CSVServiceTests.swift */,
+				A1B2C3D4E5F60718293A4B63 /* MessageTemplateRendererTests.swift */,
+				A1B2C3D4E5F60718293A4B64 /* RecipientTests.swift */,
+				A1B2C3D4E5F60718293A4B65 /* StorageMigrationTests.swift */,
+			);
+			path = PDFPacketBuilderTests;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F60718293A4B71 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F60718293A4B6A /* XCTest.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		C111CDA6F66540269958967F /* IAP */ = {
@@ -242,6 +293,24 @@
 			productReference = 327649FEC022494B9D51CA31 /* PDFPacketBuilder.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A1B2C3D4E5F60718293A4B5C /* PDFPacketBuilderTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F60718293A4B6E /* Build configuration list for PBXNativeTarget "PDFPacketBuilderTests" */;
+			buildPhases = (
+				A1B2C3D4E5F60718293A4B5E /* Sources */,
+				A1B2C3D4E5F60718293A4B5F /* Frameworks */,
+				A1B2C3D4E5F60718293A4B60 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1B2C3D4E5F60718293A4B6D /* PBXTargetDependency */,
+			);
+			name = PDFPacketBuilderTests;
+			productName = PDFPacketBuilderTests;
+			productReference = A1B2C3D4E5F60718293A4B5D /* PDFPacketBuilderTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -253,6 +322,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					C6F1E7228F56444E805C1365 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					A1B2C3D4E5F60718293A4B5C = {
 						CreatedOnToolsVersion = 15.0;
 					};
 				};
@@ -271,6 +343,7 @@
 			projectRoot = "";
 			targets = (
 				C6F1E7228F56444E805C1365 /* PDFPacketBuilder */,
+				A1B2C3D4E5F60718293A4B5C /* PDFPacketBuilderTests */,
 			);
 		};
 /* End PBXProject section */
@@ -283,6 +356,13 @@
 				7502426A7E564208BB0B78F8 /* Assets.xcassets in Resources */,
 				SAMPLE001000000000000001 /* SampleTemplate.pdf in Resources */,
 				SAMPLE001000000000000003 /* SampleRecipients.csv in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F60718293A4B60 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -334,7 +414,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B2C3D4E5F60718293A4B5E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F60718293A4B66 /* CSVServiceTests.swift in Sources */,
+				A1B2C3D4E5F60718293A4B67 /* MessageTemplateRendererTests.swift in Sources */,
+				A1B2C3D4E5F60718293A4B68 /* RecipientTests.swift in Sources */,
+				A1B2C3D4E5F60718293A4B69 /* StorageMigrationTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1B2C3D4E5F60718293A4B6D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C6F1E7228F56444E805C1365 /* PDFPacketBuilder */;
+			targetProxy = A1B2C3D4E5F60718293A4B6C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		39DFB92CA27B46A1A030E5FC /* Release */ = {
@@ -515,6 +614,50 @@
 			};
 			name = Debug;
 		};
+		A1B2C3D4E5F60718293A4B6F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yancmo.pdfpacketbuilderTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PDFPacketBuilder.app/PDFPacketBuilder";
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F60718293A4B70 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yancmo.pdfpacketbuilderTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PDFPacketBuilder.app/PDFPacketBuilder";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -532,6 +675,15 @@
 			buildConfigurations = (
 				76866AEFF1B04420A3ACBEFA /* Debug */,
 				3C2E427277144C1893D67E0B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D4E5F60718293A4B6E /* Build configuration list for PBXNativeTarget "PDFPacketBuilderTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F60718293A4B6F /* Debug */,
+				A1B2C3D4E5F60718293A4B70 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

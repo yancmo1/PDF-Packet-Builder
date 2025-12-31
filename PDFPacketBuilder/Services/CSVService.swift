@@ -334,6 +334,12 @@ class CSVService {
     }
 
     private func parseRows(_ data: String) -> [[String]] {
+        // Normalize line endings so we treat LF, CRLF, and CR consistently.
+        // (Quoted newlines are preserved as "\n"; Windows-style quoted newlines become "\n".)
+        let normalizedData = data
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+
         var rows: [[String]] = []
         var row: [String] = []
         var field = ""
@@ -356,25 +362,25 @@ class CSVService {
             row.removeAll(keepingCapacity: true)
         }
 
-        var index = data.startIndex
-        while index < data.endIndex {
-            let ch = data[index]
+        var index = normalizedData.startIndex
+        while index < normalizedData.endIndex {
+            let ch = normalizedData[index]
 
             if insideQuotes {
                 if ch == "\"" {
-                    let next = data.index(after: index)
-                    if next < data.endIndex, data[next] == "\"" {
+                    let next = normalizedData.index(after: index)
+                    if next < normalizedData.endIndex, normalizedData[next] == "\"" {
                         field.append("\"")
-                        index = data.index(after: next)
+                        index = normalizedData.index(after: next)
                         continue
                     } else {
                         insideQuotes = false
-                        index = data.index(after: index)
+                        index = normalizedData.index(after: index)
                         continue
                     }
                 } else {
                     field.append(ch)
-                    index = data.index(after: index)
+                    index = normalizedData.index(after: index)
                     continue
                 }
             }
@@ -382,26 +388,17 @@ class CSVService {
             switch ch {
             case "\"":
                 insideQuotes = true
-                index = data.index(after: index)
+                index = normalizedData.index(after: index)
             case ",":
                 commitField()
-                index = data.index(after: index)
+                index = normalizedData.index(after: index)
             case "\n":
                 commitField()
                 commitRow()
-                index = data.index(after: index)
-            case "\r":
-                commitField()
-                commitRow()
-                let next = data.index(after: index)
-                if next < data.endIndex, data[next] == "\n" {
-                    index = data.index(after: next)
-                } else {
-                    index = next
-                }
+                index = normalizedData.index(after: index)
             default:
                 field.append(ch)
-                index = data.index(after: index)
+                index = normalizedData.index(after: index)
             }
         }
 
