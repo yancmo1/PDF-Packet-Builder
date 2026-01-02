@@ -181,9 +181,56 @@ struct RecipientsView: View {
     }
 
     private func loadSampleRecipients() {
-        let sampleRecipients = SampleAssets.loadSampleRecipients()
-        guard !sampleRecipients.isEmpty else { return }
-        appState.saveRecipients(sampleRecipients)
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let url = Bundle.main.url(forResource: "SampleRecipients", withExtension: "csv"),
+                  let csvString = try? String(contentsOf: url, encoding: .utf8) else {
+                return
+            }
+
+            let storage = StorageService()
+            let csvService = CSVService()
+
+            // Persist a copy in Documents so the app has a stable local reference.
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("SampleRecipients.csv")
+            do {
+                try csvString.write(to: tempURL, atomically: true, encoding: .utf8)
+            } catch {
+                return
+            }
+
+            let fileRef: CSVFileReference
+            do {
+                fileRef = try storage.importCSVToDocuments(from: tempURL)
+            } catch {
+                return
+            }
+
+            let preview = csvService.parsePreview(data: csvString, maxRows: 25)
+            let recipients = csvService.parseCSV(data: csvString)
+            guard !recipients.isEmpty else { return }
+
+            let normalized = preview.headers.map { NormalizedName.from($0) }
+            let snapshot = CSVImportSnapshot(reference: fileRef, headers: preview.headers, normalizedHeaders: normalized)
+
+            DispatchQueue.main.async {
+                appState.saveCSVImport(snapshot)
+
+                // Pick sensible defaults for the bundled sample.
+                if preview.headers.contains("Email") {
+                    appState.saveSelectedEmailColumn("Email")
+                } else {
+                    appState.saveSelectedEmailColumn(nil)
+                }
+
+                if preview.headers.contains("StudentName") {
+                    appState.saveSelectedDisplayNameColumn("StudentName")
+                } else {
+                    appState.saveSelectedDisplayNameColumn(nil)
+                }
+
+                appState.saveRecipients(recipients)
+            }
+        }
     }
 }
 

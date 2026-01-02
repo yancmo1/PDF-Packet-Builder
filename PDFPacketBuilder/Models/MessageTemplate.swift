@@ -28,8 +28,8 @@ struct MessageTemplate: Codable, Hashable {
 
     static var starterEnabled: MessageTemplate {
         MessageTemplate(
-            subject: "Permission Slip – {{child_name}}",
-            body: "Dear Parent,\n\nPlease see the attached permission slip for {{child_name}}.\nFill it out and return it promptly.\n\nThank you,\n{{sender_name}}",
+            subject: "Attached Form – {{recipient_name}}",
+            body: "Dear {{recipient_name}},\n\nPlease see the attached form.\n\nPlease review and return it promptly.\n\nThank you,\n{{sender_name}}",
             isEnabled: true,
             lastEdited: Date(),
             tokenBindings: [:]

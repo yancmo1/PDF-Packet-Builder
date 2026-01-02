@@ -16,6 +16,7 @@ class AppState: ObservableObject {
     @Published var selectedDisplayNameColumn: String? = nil
     @Published var senderName: String = ""
     @Published var senderEmail: String = ""
+    @Published var mailDrafts: [MailDraft] = []
     
     private let storageService = StorageService()
     
@@ -38,6 +39,7 @@ class AppState: ObservableObject {
         self.selectedDisplayNameColumn = storageService.loadSelectedDisplayNameColumn()
         self.senderName = storageService.loadSenderName()
         self.senderEmail = storageService.loadSenderEmail()
+        self.mailDrafts = storageService.loadMailDrafts()
     }
     
     func canAddTemplate() -> Bool {
@@ -116,6 +118,21 @@ class AppState: ObservableObject {
         self.sendLogs.insert(log, at: 0)
         storageService.saveLogs(sendLogs)
     }
+
+    func saveMailDraft(templateID: UUID, recipientID: UUID, date: Date = Date()) {
+        // Overwrite any existing draft for this template+recipient.
+        mailDrafts.removeAll(where: { $0.templateID == templateID && $0.recipientID == recipientID })
+        mailDrafts.insert(MailDraft(templateID: templateID, recipientID: recipientID, savedDate: date), at: 0)
+        storageService.saveMailDrafts(mailDrafts)
+    }
+
+    func clearMailDraft(templateID: UUID, recipientID: UUID) {
+        let before = mailDrafts.count
+        mailDrafts.removeAll(where: { $0.templateID == templateID && $0.recipientID == recipientID })
+        if mailDrafts.count != before {
+            storageService.saveMailDrafts(mailDrafts)
+        }
+    }
     
     func updateProStatus(_ isPro: Bool) {
         self.isProUnlocked = isPro
@@ -193,5 +210,41 @@ class AppState: ObservableObject {
         // Clear logs
         self.sendLogs = []
         storageService.saveLogs([])
+    }
+
+    /// Clears app data for a clean slate.
+    /// - Important: Does not modify Pro entitlement state and does not delete user-exported PDFs.
+    func resetAllData() {
+        // Template removal clears the disk-backed template PDF (app-managed) via StorageService.
+        self.pdfTemplate = nil
+        storageService.saveTemplate(nil)
+
+        // Clear recipients + CSV import snapshot
+        self.recipients = []
+        storageService.saveRecipients([])
+
+        self.csvImport = nil
+        storageService.clearCSVImport()
+
+        self.selectedEmailColumn = nil
+        storageService.saveSelectedEmailColumn(nil)
+
+        self.selectedDisplayNameColumn = nil
+        storageService.saveSelectedDisplayNameColumn(nil)
+
+        // Clear logs
+        self.sendLogs = []
+        storageService.saveLogs([])
+
+        // Clear draft state (drafts are not sends)
+        self.mailDrafts = []
+        storageService.clearMailDrafts()
+
+        // Clear sender settings
+        self.senderName = ""
+        storageService.saveSenderName("")
+
+        self.senderEmail = ""
+        storageService.saveSenderEmail("")
     }
 }

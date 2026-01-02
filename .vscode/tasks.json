@@ -104,6 +104,54 @@
         "cwd": "${workspaceFolder}"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "🧾 PR Check: Copy Prompt",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        ".vscode/pr_check_start.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "📝 PR Reply: Create/Open Reply File",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        ".vscode/pr_reply_create.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🧩 PR Handoff: Save Markdown from Clipboard",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        ".vscode/pr_handoff_from_clipboard.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
     }
   ]
 }

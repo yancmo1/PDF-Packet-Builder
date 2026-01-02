@@ -5,6 +5,7 @@
 
 import SwiftUI
 import PDFKit
+import CryptoKit
 
 struct PDFPreviewView: UIViewControllerRepresentable {
     let pdfData: Data
@@ -110,7 +111,9 @@ final class PDFPreviewViewController: UIViewController {
     }
 
     private func dataSignature(_ data: Data) -> String {
-        let prefix = data.prefix(16).base64EncodedString()
-        return "\(data.count)-\(prefix)"
+        // PDF previews must reliably refresh when switching between generated PDFs.
+        // A sampled signature can collide for similar PDFs; use a full hash instead.
+        let digest = SHA256.hash(data: data)
+        return "\(data.count)-\(Data(digest).base64EncodedString())"
     }
 }

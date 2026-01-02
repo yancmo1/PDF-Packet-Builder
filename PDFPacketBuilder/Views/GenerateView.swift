@@ -63,6 +63,7 @@ struct GenerateView: View {
     private enum StatusFilter: String, CaseIterable, Identifiable {
         case all = "All"
         case unsent = "Unsent"
+        case draft = "Draft"
         case sent = "Sent"
 
         var id: String { rawValue }
@@ -380,6 +381,7 @@ struct GenerateView: View {
                     if completed {
                         // Log the send only after successful share
                         logSend(recipientName: item.recipientName, templateName: item.templateName, fileName: item.fileName, method: .share)
+                        appState.clearMailDraft(templateID: item.templateID, recipientID: item.recipientID)
                         showSendSuccess("Shared to \(item.recipientName)")
                     }
                 }
@@ -402,7 +404,11 @@ struct GenerateView: View {
                     if result == .sent {
                         // Log the send only after mail was sent
                         logSend(recipientName: mailItem.recipientName, templateName: mailItem.templateName, fileName: mailItem.fileName, method: .mail)
+                        appState.clearMailDraft(templateID: mailItem.templateID, recipientID: mailItem.recipientID)
                         showSendSuccess("Mailed to \(mailItem.recipientName)")
+                    } else if result == .saved {
+                        appState.saveMailDraft(templateID: mailItem.templateID, recipientID: mailItem.recipientID)
+                        showSendSuccess("Draft saved for \(mailItem.recipientName)")
                     } else if result == .failed || error != nil {
                         mailFailedMessage = error?.localizedDescription ?? "Mail could not be sent. Please try again."
                         showingMailFailedAlert = true
@@ -670,6 +676,7 @@ struct GenerateView: View {
                         Text("Subject: \(renderResult.subject)")
                             .font(.callout)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.bottom, 6)
 
                         Text(renderResult.body)
                             .font(.callout)
@@ -1076,6 +1083,11 @@ struct GenerateView: View {
     }
     
     private func sharePDF(_ item: (recipient: Recipient, pdfData: Data)) {
+        guard let templateID = appState.pdfTemplate?.id else {
+            showingShareErrorAlert = true
+            return
+        }
+
         let fileName = outputFileName(for: item.recipient)
         
         guard let url = StorageService().savePDFToDocuments(data: item.pdfData, filename: fileName) else {
@@ -1087,11 +1099,19 @@ struct GenerateView: View {
             url: url,
             recipientName: displayName(for: item.recipient),
             templateName: appState.pdfTemplate?.name ?? "document",
-            fileName: fileName
+            fileName: fileName,
+            templateID: templateID,
+            recipientID: item.recipient.id
         )
     }
     
     private func sendMail(_ item: (recipient: Recipient, pdfData: Data)) {
+        guard let templateID = appState.pdfTemplate?.id else {
+            showingMailFailedAlert = true
+            mailFailedMessage = "No template selected."
+            return
+        }
+
         guard MFMailComposeViewController.isAvailable else {
             showingMailUnavailableAlert = true
             return
@@ -1116,7 +1136,9 @@ struct GenerateView: View {
             subject: subjectAndBody.subject,
             body: subjectAndBody.body,
             fileName: fileName,
-            pdfData: item.pdfData
+            pdfData: item.pdfData,
+            templateID: templateID,
+            recipientID: item.recipient.id
         )
 
         currentMailItem = mailItem
@@ -1264,6 +1286,15 @@ struct GenerateView: View {
         sendLogForGenerated(item) != nil
     }
 
+    private func mailDraftForGenerated(_ item: (recipient: Recipient, pdfData: Data)) -> MailDraft? {
+        guard let templateID = appState.pdfTemplate?.id else { return nil }
+        return appState.mailDrafts.first(where: { $0.templateID == templateID && $0.recipientID == item.recipient.id })
+    }
+
+    private func isDraftStatus(for item: (recipient: Recipient, pdfData: Data)) -> Bool {
+        mailDraftForGenerated(item) != nil
+    }
+
     @ViewBuilder
     private func statusChip(for item: (recipient: Recipient, pdfData: Data)) -> some View {
         if let log = sendLogForGenerated(item) {
@@ -1273,6 +1304,14 @@ struct GenerateView: View {
                 .padding(.vertical, 4)
                 .background(Color.green.opacity(0.15))
                 .foregroundColor(.green)
+                .clipShape(Capsule())
+        } else if let draft = mailDraftForGenerated(item) {
+            Text("Draft \(draft.formattedSavedDate)")
+                .font(.caption2)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.15))
+                .foregroundColor(.blue)
                 .clipShape(Capsule())
         } else {
             Text("Unsent")
@@ -1290,7 +1329,9 @@ struct GenerateView: View {
         case .all:
             return generatedPDFs
         case .unsent:
-            return generatedPDFs.filter { !isSentStatus(for: $0) }
+            return generatedPDFs.filter { !isSentStatus(for: $0) && !isDraftStatus(for: $0) }
+        case .draft:
+            return generatedPDFs.filter { isDraftStatus(for: $0) && !isSentStatus(for: $0) }
         case .sent:
             return generatedPDFs.filter { isSentStatus(for: $0) }
         }
@@ -1322,6 +1363,8 @@ struct ShareItem: Identifiable {
     let recipientName: String
     let templateName: String
     let fileName: String
+    let templateID: UUID
+    let recipientID: UUID
 }
 
 struct ExportBundle: Identifiable {
@@ -1339,6 +1382,8 @@ struct MailItem: Identifiable {
     let body: String
     let fileName: String
     let pdfData: Data
+    let templateID: UUID
+    let recipientID: UUID
 }
 
 struct GenerateView_Previews: PreviewProvider {

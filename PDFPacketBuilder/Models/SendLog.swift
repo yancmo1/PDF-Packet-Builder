@@ -36,3 +36,26 @@ struct SendLog: Codable, Identifiable {
         return formatter.string(from: sentDate)
     }
 }
+
+/// Tracks a mail draft save (not a send).
+struct MailDraft: Codable, Hashable, Identifiable {
+    let id: UUID
+    let templateID: UUID
+    let recipientID: UUID
+    let savedDate: Date
+
+    init(id: UUID = UUID(), templateID: UUID, recipientID: UUID, savedDate: Date = Date()) {
+        self.id = id
+        self.templateID = templateID
+        self.recipientID = recipientID
+        self.savedDate = savedDate
+    }
+
+    var formattedSavedDate: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "MM-dd-yy"
+        return formatter.string(from: savedDate)
+    }
+}

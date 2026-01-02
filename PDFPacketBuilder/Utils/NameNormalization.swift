@@ -91,7 +91,7 @@ enum NameNormalizer {
         }
 
         // A generic single-token "Name" field is usually ambiguous (ParentName, StudentName, etc.).
-        // Keep it conservative so auto-mapping prefers false-negatives.
+        // Keep it conservative to prefer false-negatives.
         if set.contains("name") {
             return tokens.count <= 1 ? .unknown : .fullName
         }

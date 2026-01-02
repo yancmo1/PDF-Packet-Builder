@@ -1,6 +1,6 @@
 # PDF Packet Builder - Living Project Documentation
 
-**Last Updated:** 2025-12-29  
+**Last Updated:** 2025-12-31  
 **Version:** 1.0  
 **Bundle ID:** `com.yancmo.pdfpacketbuilder`  
 **Team ID:** `9PHS626XUN`
@@ -114,9 +114,7 @@ PDF Packet Builder is an iOS application that automates the process of filling P
 
 **Behavior Notes / Good to Know:**
 - Mapping is disabled until a CSV is selected (prevents mapping to stale/unknown headers).
-- When a CSV is selected, the app may apply conservative auto-suggestions **only for unmapped fields**.
-   - Auto-suggestions only apply when there is a single high-confidence match.
-   - Ambiguous fields remain unmapped.
+- Mapping is always manual in v1 (no auto-suggestions).
 - Computed mapping options are available in the picker:
    - Initials
    - Today (MM-DD-YY)
@@ -222,6 +220,7 @@ This section is a placeholder for future work to keep mapping logic documented i
 **Debug Testing:**
 - Debug builds include a Settings toggle to *simulate Free tier* for testing, even when the Apple ID owns Pro.
 - This does not change real App Store entitlements and is excluded from production builds.
+- Debug builds also include a Settings toggle to *simulate Pro* for testing when StoreKit purchase testing is unavailable (e.g., when launching on Simulator outside Xcode).
 
 ---
 
@@ -411,6 +410,17 @@ static let freeLogRetentionDays = 7
 - Use StoreKit Configuration file (`.storekit`) for Xcode testing
 - Or test with TestFlight builds
 - Sandbox testing not recommended (unreliable)
+
+**Important (Simulator):**
+- The iOS Simulator cannot perform real App Store purchases.
+- Use either:
+   - **Xcode Run** with a **StoreKit Configuration** attached to the scheme, or
+   - a **TestFlight build** with a sandbox tester account.
+
+**Important (SweetPad / simctl launch):**
+- When launching the app via `simctl` (such as SweetPad “Launch”), Xcode scheme options like **StoreKit Configuration** are not applied.
+- Result: purchases may immediately return `.userCancelled` / “Purchase cancelled”.
+- For deterministic local IAP testing, run from Xcode with a StoreKit configuration.
 
 **App Store Connect Setup Required:**
 1. Create In-App Purchase in App Store Connect
@@ -786,6 +796,8 @@ Pre-configured tasks in `.vscode/tasks.json`:
 3. Run in simulator
 4. Use test accounts
 
+Note: This method requires launching from **Xcode Run** with the StoreKit configuration selected in the scheme.
+
 **Method 2: TestFlight**
 1. Upload build to TestFlight
 2. Product must exist in App Store Connect
@@ -952,7 +964,7 @@ Pre-configured tasks in `.vscode/tasks.json`:
 
 7. **Advanced Mapping**
    - **Description:** Formulas, conditional logic, data transformation
-   - **Current State:** Supports direct mapping plus limited computed values (Initials/Today/Blank) and conservative auto-suggestions
+   - **Current State:** Supports direct mapping plus limited computed values (Initials/Today/Blank). Mapping is manual in v1.
    - **Implementation:** Expression evaluator
    - **Files to Modify:** `MapView.swift`, new `MappingEngine.swift`
 
@@ -1122,6 +1134,7 @@ Pre-configured tasks in `.vscode/tasks.json`:
 2. Check transaction logs in Xcode console
 3. Verify product ID spelling
 4. Test restore purchases separately
+5. If using Simulator, run from Xcode with StoreKit configuration (not via `simctl` launch)
 
 ### Support Resources
 

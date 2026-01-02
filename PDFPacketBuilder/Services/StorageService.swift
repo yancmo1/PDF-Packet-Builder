@@ -24,6 +24,7 @@ class StorageService {
     private let legacyCSVDisplayNameColumnKey = "csvDisplayNameColumn"
     private let senderNameKey = "senderName"
     private let senderEmailKey = "senderEmail"
+    private let mailDraftsKey = "mailDrafts"
     
     // MARK: - Template PDF File Storage
     
@@ -126,6 +127,23 @@ class StorageService {
     func loadLogs() -> [SendLog] {
         guard let data = defaults.data(forKey: logsKey) else { return [] }
         return (try? JSONDecoder().decode([SendLog].self, from: data)) ?? []
+    }
+
+    // MARK: - Mail Drafts Storage
+
+    func saveMailDrafts(_ drafts: [MailDraft]) {
+        if let encoded = try? JSONEncoder().encode(drafts) {
+            defaults.set(encoded, forKey: mailDraftsKey)
+        }
+    }
+
+    func loadMailDrafts() -> [MailDraft] {
+        guard let data = defaults.data(forKey: mailDraftsKey) else { return [] }
+        return (try? JSONDecoder().decode([MailDraft].self, from: data)) ?? []
+    }
+
+    func clearMailDrafts() {
+        defaults.removeObject(forKey: mailDraftsKey)
     }
     
     // MARK: - Pro Status Storage

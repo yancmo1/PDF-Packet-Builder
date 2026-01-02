@@ -12,9 +12,21 @@ struct SettingsView: View {
     @State private var isRestoring = false
     @State private var showingQuickStart = false
 
+    @FocusState private var senderFocus: SenderFocus?
+    @State private var showingSavedToast = false
+    @State private var savedToastMessage: String = ""
+    @State private var lastToastedSenderSnapshot: String = ""
+
+    private enum SenderFocus: Hashable {
+        case name
+        case email
+    }
+
 #if DEBUG
     @State private var debugForceFreeTier = false
+    @State private var debugForcePro = false
     @AppStorage("debug_useMailSimulator") private var debugUseMailSimulator = false
+    @State private var showingResetAllDataConfirm = false
 #endif
 
     private var appVersionDisplay: String {
@@ -65,6 +77,12 @@ struct SettingsView: View {
                         )
                     )
                     .textInputAutocapitalization(.words)
+                    .focused($senderFocus, equals: .name)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        senderFocus = nil
+                        toastSenderSavedIfChanged()
+                    }
 
                     TextField(
                         "Sender email",
@@ -77,6 +95,12 @@ struct SettingsView: View {
                     )
                     .textInputAutocapitalization(.never)
                     .keyboardType(.emailAddress)
+                    .focused($senderFocus, equals: .email)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        senderFocus = nil
+                        toastSenderSavedIfChanged()
+                    }
                 }
 
                 Section(header: Text("Help")) {
@@ -98,6 +122,17 @@ struct SettingsView: View {
                     Toggle("Simulate Free Tier", isOn: $debugForceFreeTier)
                         .onChange(of: debugForceFreeTier) { newValue in
                             iapManager.setDebugForceFreeTier(newValue)
+                            if newValue {
+                                debugForcePro = false
+                            }
+                        }
+
+                    Toggle("Simulate Pro (dev)", isOn: $debugForcePro)
+                        .onChange(of: debugForcePro) { newValue in
+                            iapManager.setDebugForcePro(newValue)
+                            if newValue {
+                                debugForceFreeTier = false
+                            }
                         }
 
                     Toggle("Use Mail Simulator", isOn: $debugUseMailSimulator)
@@ -109,6 +144,12 @@ struct SettingsView: View {
                     Text("Use this to test Free-tier limits even if the current Apple ID owns Pro. This does not change real App Store entitlements.")
                         .font(.caption)
                         .foregroundColor(.secondary)
+
+                    Button(role: .destructive) {
+                        showingResetAllDataConfirm = true
+                    } label: {
+                        Label("Reset All Data", systemImage: "trash")
+                    }
                 }
 #endif
                 
@@ -188,6 +229,31 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .onAppear {
+                lastToastedSenderSnapshot = senderSnapshotKey()
+            }
+            .onChange(of: senderFocus) { _ in
+                // When leaving a sender field, show a lightweight confirmation toast.
+                if senderFocus == nil {
+                    toastSenderSavedIfChanged()
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if showingSavedToast {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text(savedToastMessage)
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(10)
+                    .shadow(radius: 5)
+                    .padding(.bottom, 40)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.easeInOut, value: showingSavedToast)
+                }
+            }
             .sheet(isPresented: $showingPurchaseSheet) {
                 PurchaseView()
             }
@@ -197,8 +263,43 @@ struct SettingsView: View {
 #if DEBUG
             .onAppear {
                 debugForceFreeTier = iapManager.debugForceFreeTierEnabled()
+                debugForcePro = iapManager.debugForceProEnabled()
+            }
+            .alert("Reset all data?", isPresented: $showingResetAllDataConfirm) {
+                Button("Cancel", role: .cancel) { }
+                Button("Reset", role: .destructive) {
+                    appState.resetAllData()
+                    debugForceFreeTier = false
+                    iapManager.setDebugForceFreeTier(false)
+                    debugForcePro = false
+                    iapManager.setDebugForcePro(false)
+                    debugUseMailSimulator = false
+                }
+            } message: {
+                Text("This clears the current template, recipients, CSV import, mappings, logs, and sender info. It does not remove your Pro purchase and does not delete exported PDFs saved in Files.")
             }
 #endif
+        }
+    }
+
+    private func senderSnapshotKey() -> String {
+        let name = appState.senderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let email = appState.senderEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        return "\(name)|\(email)"
+    }
+
+    private func toastSenderSavedIfChanged() {
+        let snapshot = senderSnapshotKey()
+        guard snapshot != lastToastedSenderSnapshot else { return }
+        lastToastedSenderSnapshot = snapshot
+        showSavedToast("Sender saved")
+    }
+
+    private func showSavedToast(_ message: String) {
+        savedToastMessage = message
+        showingSavedToast = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            showingSavedToast = false
         }
     }
     

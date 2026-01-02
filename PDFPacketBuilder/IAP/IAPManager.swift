@@ -17,6 +17,7 @@ class IAPManager: NSObject, ObservableObject {
 
 #if DEBUG
     private static let debugForceFreeTierKey = "debug.forceFreeTier"
+    private static let debugForceProKey = "debug.forcePro"
 #endif
     
     private var updateListenerTask: Task<Void, Error>?
@@ -72,6 +73,10 @@ class IAPManager: NSObject, ObservableObject {
         lastStoreErrorMessage = nil
         lastPurchaseStatusMessage = "Starting purchase…"
 
+#if DEBUG
+        print("Starting purchase for \(product.id)")
+#endif
+
         let result = try await product.purchase()
         
         switch result {
@@ -85,7 +90,11 @@ class IAPManager: NSObject, ObservableObject {
         case .userCancelled, .pending:
             switch result {
             case .userCancelled:
+#if targetEnvironment(simulator)
+                self.lastPurchaseStatusMessage = "Purchase cancelled. (Simulator: configure StoreKit testing or sign in to a Sandbox Apple ID.)"
+#else
                 self.lastPurchaseStatusMessage = "Purchase cancelled."
+#endif
             case .pending:
                 self.lastPurchaseStatusMessage = "Purchase pending approval."
             default:
@@ -109,9 +118,13 @@ class IAPManager: NSObject, ObservableObject {
             await updatePurchasedProducts()
             lastPurchaseStatusMessage = "Restore completed."
         } catch {
-            let message = "Failed to restore purchases: \(error)"
-            lastStoreErrorMessage = message
-            print(message)
+            if isUserCancelled(error) {
+                lastPurchaseStatusMessage = "Restore cancelled."
+            } else {
+                let message = "Failed to restore purchases: \(error)"
+                lastStoreErrorMessage = message
+                print(message)
+            }
         }
         isLoading = false
     }
@@ -137,6 +150,10 @@ class IAPManager: NSObject, ObservableObject {
         if UserDefaults.standard.bool(forKey: Self.debugForceFreeTierKey) {
             return false
         }
+
+        if UserDefaults.standard.bool(forKey: Self.debugForceProKey) {
+            return true
+        }
 #endif
         return purchasedProductIDs.contains(Self.proProductID)
     }
@@ -145,12 +162,30 @@ class IAPManager: NSObject, ObservableObject {
     @MainActor
     func setDebugForceFreeTier(_ enabled: Bool) {
         UserDefaults.standard.set(enabled, forKey: Self.debugForceFreeTierKey)
+        if enabled {
+            // If forcing Free, clear any Pro simulation override.
+            UserDefaults.standard.set(false, forKey: Self.debugForceProKey)
+        }
         // Trigger any UI that depends on `isProUnlocked` to refresh.
+        objectWillChange.send()
+    }
+
+    @MainActor
+    func setDebugForcePro(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: Self.debugForceProKey)
+        if enabled {
+            // If forcing Pro, clear any Free simulation override.
+            UserDefaults.standard.set(false, forKey: Self.debugForceFreeTierKey)
+        }
         objectWillChange.send()
     }
 
     func debugForceFreeTierEnabled() -> Bool {
         UserDefaults.standard.bool(forKey: Self.debugForceFreeTierKey)
+    }
+
+    func debugForceProEnabled() -> Bool {
+        UserDefaults.standard.bool(forKey: Self.debugForceProKey)
     }
 #endif
     
@@ -161,6 +196,29 @@ class IAPManager: NSObject, ObservableObject {
         case .verified(let safe):
             return safe
         }
+    }
+
+    private func isUserCancelled(_ error: Error) -> Bool {
+        if let storeKitError = error as? StoreKitError {
+            switch storeKitError {
+            case .userCancelled:
+                return true
+            default:
+                break
+            }
+        }
+
+        let nsError = error as NSError
+        if nsError.domain == SKErrorDomain, nsError.code == SKError.paymentCancelled.rawValue {
+            return true
+        }
+
+        // Fallback: some error prints end up as "userCancelled".
+        if String(describing: error).localizedCaseInsensitiveContains("userCancelled") {
+            return true
+        }
+
+        return false
     }
 }
 

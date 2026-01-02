@@ -28,15 +28,15 @@ struct MessageTemplateRenderer {
         "sender_email"
     ]
 
-    private static let tokenRegex: NSRegularExpression = {
+    private static let tokenRegex: NSRegularExpression? = {
         // {{token_name}} with optional whitespace inside braces.
         // Tokens are lower_snake_case in v1.
         let pattern = #"\{\{\s*([a-z0-9_]+)\s*\}\}"#
-        // This is a static literal pattern; failure indicates a programmer error.
-        return try! NSRegularExpression(pattern: pattern, options: [])
+        return try? NSRegularExpression(pattern: pattern, options: [])
     }()
 
     static func extractTokens(from text: String) -> Set<String> {
+        guard let tokenRegex else { return [] }
         let ns = text as NSString
         let matches = tokenRegex.matches(in: text, options: [], range: NSRange(location: 0, length: ns.length))
         var tokens: Set<String> = []
@@ -82,6 +82,7 @@ struct MessageTemplateRenderer {
     }
 
     static func renderText(_ text: String, allowedTokens: Set<String>, resolvedValues: [String: String]) -> String {
+        guard let tokenRegex else { return text }
         let ns = text as NSString
         let matches = tokenRegex.matches(in: text, options: [], range: NSRange(location: 0, length: ns.length))
         if matches.isEmpty { return text }
