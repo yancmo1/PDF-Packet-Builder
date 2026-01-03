@@ -1,6 +1,11 @@
-# PR Check (Review‑Only) — PR #{{PR_NUMBER}} — {{SHORT_TOPIC}}
+# PR Check (Review‑Only, Follow‑up) — PR #{{PR_NUMBER}} — {{SHORT_TOPIC}}
 
-You are reviewing a pull request. **Review‑only mode: do not implement changes.**
+You are reviewing a pull request **again** after changes were requested. **Review‑only mode: do not implement changes.**
+
+This follow‑up review should:
+- Re‑evaluate only the *delta* since the last review.
+- Confirm the author addressed the previous findings.
+- Identify any new risks introduced by the edits.
 
 ## Authority docs (follow in priority order; use the first that exists)
 1) .github/copilot-instructions.md
@@ -15,37 +20,32 @@ You are reviewing a pull request. **Review‑only mode: do not implement changes
 - Topic: {{SHORT_TOPIC}}
 - Prompt artifact: docs/reviews/{{PROMPT_FILENAME}}
 
-## Non‑negotiables for this review
+## Context you must consider
+- The **chat history** (previous review findings and the author’s replies).
+- Prior review artifacts (if present) under `docs/reviews/` for this PR.
+- The PR description and all updated commits/files.
+
+## Non‑negotiables for this follow‑up review
 - **No implementation.** Provide review findings and suggested edits only.
 - **Evidence anchors required:** For every **High** or **Medium** item, include:
   - `Anchors: <file path>:<symbol>(...) (~Lx–Ly)`
   - If you cannot determine line ranges, still provide file + symbol and state: “line range unavailable.”
 - **Decision discipline:** If tests were not run, do **not** say “LGTM/Approve” without listing explicit **must‑verify** manual steps.
-- **When unsure:** state assumptions and what evidence would confirm them.
+- **Regression mindset:** Explicitly check that fixes did not introduce new behavior changes.
 
 ## Required output (use these exact headings, in this order)
 
-### 1) Scope and intent
-- 2–4 bullets describing what the PR is changing and why.
+### 1) What changed since last review
+- 3–8 bullets describing the meaningful deltas.
 
-### 2) Risk inventory (choose what applies)
-List risks and edge cases relevant to the PR. Choose from (and add PR‑specific items as needed):
-- Lifecycle/observers & cleanup
-- Concurrency & reentrancy
-- Error handling & logging (avoid swallowed failures)
-- State synchronization / single source of truth
-- Backward compatibility / availability gating
-- Performance / battery / memory
-- Security / privacy / secrets
-- Data integrity / migrations
-- UI/UX regression risk
-- Build/CI / target membership / packaging
+### 2) Previous findings: status
+For each previous High/Medium item: **Fixed / Partially fixed / Not fixed / Not applicable** + anchors.
 
-### 3) Findings summary (High / Medium / Low)
+### 3) New risk inventory
+List new risks/edge cases introduced by the edits.
+
+### 4) Findings summary (High / Medium / Low)
 Provide a short table‑like list, then details below.
-
-### 4) Decision required (if applicable)
-What decision the reviewer or author must make (e.g., acceptable fallback behavior, feature flag choice).
 
 ### 5) Required changes (blocking)
 Each item must include:
