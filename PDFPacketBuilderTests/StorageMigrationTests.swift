@@ -25,7 +25,7 @@ final class StorageMigrationTests: XCTestCase {
         let template = PDFTemplate(
             id: UUID(),
             name: "Test Template",
-            pdfFilePath: "/path/to/template.pdf",
+            pdfFilePath: "Templates/template.pdf",
             fields: [],
             fieldMappings: [:],
             messageTemplate: .emptyDisabled,
@@ -60,9 +60,9 @@ final class StorageMigrationTests: XCTestCase {
             fields: []
         )
         
-        let migrated = template.withFilePath("/new/path/template.pdf")
+        let migrated = template.withFilePath("Templates/template.pdf")
         
-        XCTAssertEqual(migrated.pdfFilePath, "/new/path/template.pdf")
+        XCTAssertEqual(migrated.pdfFilePath, "Templates/template.pdf")
         XCTAssertFalse(migrated.needsMigration)
         XCTAssertNil(migrated.legacyDataForMigration)
     }
@@ -79,7 +79,7 @@ final class StorageMigrationTests: XCTestCase {
         )
         
         // Simulate migration
-        template = template.withFilePath("/path/to/file.pdf")
+        template = template.withFilePath("Templates/file.pdf")
         
         // Encode and decode
         let encoded = try JSONEncoder().encode(template)
@@ -121,7 +121,7 @@ final class StorageMigrationTests: XCTestCase {
         {
             "id": "12345678-1234-1234-1234-123456789012",
             "name": "New Template",
-            "pdfFilePath": "/Documents/Templates/12345678.pdf",
+            "pdfFilePath": "Templates/12345678.pdf",
             "fields": [],
             "fieldMappings": {},
             "createdAt": 0
@@ -132,7 +132,7 @@ final class StorageMigrationTests: XCTestCase {
         let template = try JSONDecoder().decode(PDFTemplate.self, from: data)
         
         XCTAssertEqual(template.name, "New Template")
-        XCTAssertEqual(template.pdfFilePath, "/Documents/Templates/12345678.pdf")
+        XCTAssertEqual(template.pdfFilePath, "Templates/12345678.pdf")
         XCTAssertFalse(template.needsMigration)
     }
 }

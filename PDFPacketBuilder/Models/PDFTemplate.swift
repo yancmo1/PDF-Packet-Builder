@@ -15,7 +15,9 @@ struct PDFTemplate: Codable, Identifiable {
     var messageTemplate: MessageTemplate
     var createdAt: Date
     
-    /// File path to PDF stored on disk (preferred storage)
+    /// File path to PDF stored on disk (preferred storage).
+    /// Stored as a portable path relative to Documents (e.g. "Templates/<uuid>.pdf").
+    /// Legacy values may be absolute paths.
     var pdfFilePath: String?
     
     /// Legacy: embedded PDF data (used only for migration)
@@ -25,7 +27,14 @@ struct PDFTemplate: Codable, Identifiable {
     var pdfData: Data? {
         // Prefer disk-based storage
         if let filePath = pdfFilePath {
-            let url = URL(fileURLWithPath: filePath)
+            let trimmed = filePath.trimmingCharacters(in: .whitespacesAndNewlines)
+            let url: URL
+            if trimmed.hasPrefix("/") {
+                url = URL(fileURLWithPath: trimmed)
+            } else {
+                let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+                url = (docs ?? FileManager.default.temporaryDirectory).appendingPathComponent(trimmed)
+            }
             return try? Data(contentsOf: url)
         }
         // Fall back to legacy embedded data

@@ -12,8 +12,6 @@ struct MapView: View {
     @State private var showingCSVImport = false
     @State private var showUsedCSVColumnsInPickers = false
 
-    @State private var showingAutoMapConfirm = false
-
     @State private var showingSaveToast = false
     @State private var saveToastMessage: String = ""
 
@@ -182,21 +180,14 @@ struct MapView: View {
                     .navigationTitle("Map Fields")
                     .toolbar {
                         ToolbarItem(placement: .navigationBarLeading) {
-                            if iapManager.isProUnlocked {
-                                Button("Auto Map") {
-                                    showingAutoMapConfirm = true
-                                }
-                                .disabled(template.fields.isEmpty || appState.csvImport == nil)
-                            } else {
 #if DEBUG
-                                Button("Auto Map (Dev)") {
-                                    autoMap(template, allowWhenNotPro: true)
-                                }
-                                .disabled(template.fields.isEmpty || appState.csvImport == nil)
-#else
-                                EmptyView()
-#endif
+                            Button("Auto Map (Dev)") {
+                                autoMap(template, allowWhenNotPro: true)
                             }
+                            .disabled(template.fields.isEmpty || appState.csvImport == nil)
+#else
+                            EmptyView()
+#endif
                         }
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("Save") {
@@ -204,14 +195,6 @@ struct MapView: View {
                             }
                             .disabled(template.fields.isEmpty || appState.csvImport == nil)
                         }
-                    }
-                    .alert("Auto-map unmapped fields?", isPresented: $showingAutoMapConfirm) {
-                        Button("Cancel", role: .cancel) { }
-                        Button("Apply") {
-                            autoMap(template, allowWhenNotPro: false)
-                        }
-                    } message: {
-                        Text("This suggests mappings for unmapped PDF fields using your CSV column names. You can review and edit the results before saving.")
                     }
                     .sheet(isPresented: $showingCSVImport) {
                         CSVImportPreviewView()

@@ -27,6 +27,24 @@ class StorageService {
     private let mailDraftsKey = "mailDrafts"
     
     // MARK: - Template PDF File Storage
+
+    private func templatePDFURL(from storedPath: String) -> URL {
+        let trimmed = storedPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasPrefix("/") {
+            return URL(fileURLWithPath: trimmed)
+        }
+        return getDocumentsDirectory().appendingPathComponent(trimmed)
+    }
+
+    private func portableTemplatePDFPath(fromAbsolutePath path: String) -> String? {
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.hasPrefix("/") else { return nil }
+
+        let docsPath = getDocumentsDirectory().path
+        let prefix = docsPath.hasSuffix("/") ? docsPath : (docsPath + "/")
+        guard trimmed.hasPrefix(prefix) else { return nil }
+        return String(trimmed.dropFirst(prefix.count))
+    }
     
     private func getTemplatesDirectory() -> URL {
         let dir = getDocumentsDirectory()
@@ -42,7 +60,8 @@ class StorageService {
         let url = getTemplatesDirectory().appendingPathComponent(filename)
         do {
             try data.write(to: url, options: [.atomic])
-            return url.path
+            // Store a portable relative path so it survives reinstall/restore.
+            return "Templates/\(filename)"
         } catch {
             print("Error saving template PDF to disk: \(error)")
             return nil
@@ -50,12 +69,12 @@ class StorageService {
     }
     
     func loadTemplatePDF(from path: String) -> Data? {
-        let url = URL(fileURLWithPath: path)
+        let url = templatePDFURL(from: path)
         return try? Data(contentsOf: url)
     }
     
     func deleteTemplatePDF(at path: String) {
-        let url = URL(fileURLWithPath: path)
+        let url = templatePDFURL(from: path)
         try? fileManager.removeItem(at: url)
     }
     
@@ -88,6 +107,14 @@ class StorageService {
     func loadTemplate() -> PDFTemplate? {
         guard let data = defaults.data(forKey: templateKey) else { return nil }
         guard var template = try? JSONDecoder().decode(PDFTemplate.self, from: data) else { return nil }
+
+        // Normalize legacy absolute paths to portable relative paths when possible.
+        if let path = template.pdfFilePath, let portable = portableTemplatePDFPath(fromAbsolutePath: path) {
+            template = template.withFilePath(portable)
+            if let encoded = try? JSONEncoder().encode(template) {
+                defaults.set(encoded, forKey: templateKey)
+            }
+        }
         
         // Migration: if template has legacy embedded data but no file path, migrate to disk
         if template.needsMigration, let legacyData = template.legacyDataForMigration {
@@ -294,7 +321,7 @@ class StorageService {
     // MARK: - Document Directory Access
     
     func getDocumentsDirectory() -> URL {
-        fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        fileManager.urls(for: .documentDirectory, in: .userDomainMask).first ?? fileManager.temporaryDirectory
     }
 
     func importCSVToDocuments(from sourceURL: URL) throws -> CSVFileReference {
